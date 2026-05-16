@@ -3,7 +3,7 @@
 > **UniArena** is a university platform built to streamline club, society & sports registration, simplify communication, and centralise access to events, ticketing, fixtures, media & announcements — all under one roof.
 
 ![Status](https://img.shields.io/badge/status-active%20development-yellow)
-![License](https://img.shields.io/badge/license-MIT-green)
+![License](https://img.shields.io/badge/license-Proprietary-red)
 ![Node](https://img.shields.io/badge/node-20%2B-brightgreen)
 ![Next.js](https://img.shields.io/badge/Next.js-14-black)
 
@@ -532,7 +532,9 @@ Please follow the [Conventional Commits](https://www.conventionalcommits.org/) s
 
 ## 📄 License
 
-MIT License — see [LICENSE](./LICENSE) for full details.
+Proprietary — All rights reserved. This software may not be copied, modified,
+or distributed without prior written permission from the author.
+See [LICENSE](./LICENSE) for full details.
 
 ---
 
