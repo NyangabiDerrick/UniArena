@@ -18,6 +18,7 @@
 - [Project Structure](#-project-structure)
 - [Getting Started](#-getting-started)
 - [Environment Variables](#-environment-variables)
+- [Requirements](./docs/requirements.md)
 - [University System Integration](#-university-system-integration)
 - [Work Plan](#-work-plan)
 - [Resources Required](#-resources-required)
@@ -36,6 +37,8 @@ The platform integrates with existing university systems (SSO, student records, 
 ---
 
 ## 🚀 Features & Services
+
+> Features included in the MVP are marked in the [Requirements Document](./docs/requirements.md#-mvp-scope). All others are planned for post-MVP.
 
 ### 🔐 Authentication & Access Control
 - University SSO login via OAuth2 / SAML (Microsoft Entra, Google Workspace, Okta)
@@ -170,7 +173,7 @@ The platform integrates with existing university systems (SSO, student records, 
 
 ## 📁 Project Structure
 
-```
+```plaintext
 uniarena/
 ├── frontend/                   # Next.js 14 App Router
 │   └── src/
@@ -202,6 +205,7 @@ uniarena/
 │       └── schema.prisma       # Database schema
 │
 ├── docs/                       # Documentation
+│   ├── requirements.md         # MVP scope and business rules
 │   ├── api/                    # API reference
 │   ├── architecture/           # System design and diagrams
 │   └── deployment/             # Deployment guides
