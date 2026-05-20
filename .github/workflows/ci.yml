@@ -1,0 +1,20 @@
+name: CI
+
+on:
+  push:
+    branches: [develop, staging]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+      - name: Install frontend dependencies
+        run: cd frontend && npm install
+      - name: Install backend dependencies
+        run: cd backend && npm install
