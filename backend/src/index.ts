@@ -6,6 +6,7 @@ import cookieParser from 'cookie-parser'
 import dotenv from 'dotenv'
 import { errorHandler, notFound } from './middleware/errorHandler'
 import { generalLimiter } from './middleware/rateLimiter'
+import userRoutes from './routes/users'
 
 dotenv.config()
 
@@ -39,6 +40,9 @@ app.get('/health', (req, res) => {
     environment: process.env.NODE_ENV
   })
 })
+
+// Routes
+app.use('/api/users', userRoutes)
 
 // Test protected route
 app.get('/api/test/student', 
