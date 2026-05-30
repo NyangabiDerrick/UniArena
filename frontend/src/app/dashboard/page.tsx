@@ -1,80 +1,101 @@
 "use client"
 
-import { useSession, signOut } from "next-auth/react"
-import { useRouter } from "next/navigation"
-import { useEffect } from "react"
+import { useSession } from "next-auth/react"
+import MainLayout from "@/components/layout/MainLayout"
+import {
+  Users,
+  Calendar,
+  Trophy,
+  Newspaper
+} from "lucide-react"
+
+const stats = [
+  { label: "My Clubs", value: "3", icon: Users, color: "bg-blue-50 text-blue-600" },
+  { label: "Upcoming Events", value: "5", icon: Calendar, color: "bg-green-50 text-green-600" },
+  { label: "Sports Teams", value: "2", icon: Trophy, color: "bg-orange-50 text-orange-600" },
+  { label: "Latest News", value: "12", icon: Newspaper, color: "bg-purple-50 text-purple-600" }
+]
+
+function cn(...classes: string[]) {
+  return classes.filter(Boolean).join(" ")
+}
 
 export default function DashboardPage() {
-  const { data: session, status } = useSession()
-  const router = useRouter()
-
-  useEffect(() => {
-    if (status === "unauthenticated") {
-      router.push("/auth/login")
-    }
-  }, [status, router])
-
-  if (status === "loading") {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-gray-500">Loading...</p>
-      </div>
-    )
-  }
-
-  if (!session) return null
+  const { data: session } = useSession()
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
-      <div className="max-w-4xl mx-auto">
+    <MainLayout>
+      <div className="max-w-6xl mx-auto">
 
-        {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-2xl font-bold text-blue-600">🏟️ UniArena</h1>
-          <button
-            onClick={() => signOut({ callbackUrl: "/auth/login" })}
-            className="bg-red-500 text-white px-4 py-2 rounded-md text-sm hover:bg-red-600 transition"
-          >
-            Sign Out
-          </button>
+        {/* Welcome */}
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold text-gray-900">
+            Welcome back, {session?.user?.name?.split(" ")[0]} 👋
+          </h1>
+          <p className="text-gray-500 mt-1">
+            Here is what is happening at UniArena today
+          </p>
         </div>
 
-        {/* Welcome Card */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <h2 className="text-xl font-semibold mb-4">
-            Welcome back, {session.user.name} 👋
-          </h2>
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <span className="text-gray-500">Email:</span>
-              <p className="font-medium">{session.user.email}</p>
-            </div>
-            <div>
-              <span className="text-gray-500">Role:</span>
-              <p className="font-medium">
-                <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs">
-                  {session.user.role}
-                </span>
-              </p>
-            </div>
-            <div>
-              <span className="text-gray-500">Student ID:</span>
-              <p className="font-medium">{session.user.studentId}</p>
-            </div>
-            <div>
-              <span className="text-gray-500">Faculty:</span>
-              <p className="font-medium">{session.user.faculty}</p>
-            </div>
+        {/* Role Badge */}
+        <div className="mb-6">
+          <span className="bg-blue-100 text-blue-700 text-xs font-medium px-3 py-1 rounded-full">
+            {session?.user?.role}
+          </span>
+          <span className="ml-2 text-sm text-gray-500">
+            {session?.user?.faculty}
+          </span>
+        </div>
+
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          {stats.map((stat) => {
+            const Icon = stat.icon
+            return (
+              <div
+                key={stat.label}
+                className="bg-white rounded-xl shadow-sm border border-gray-100 p-5"
+              >
+                <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center mb-3", stat.color)}>
+                  <Icon className="w-5 h-5" />
+                </div>
+                <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+                <p className="text-sm text-gray-500 mt-0.5">{stat.label}</p>
+              </div>
+            )
+          })}
+        </div>
+
+        {/* Quick Links */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+            <h2 className="font-semibold text-gray-900 mb-3">My Clubs</h2>
+            <p className="text-sm text-gray-500">
+              You have not joined any clubs yet.
+            </p>
+            <a
+              href="/clubs"
+              className="mt-3 inline-block text-sm text-blue-600 hover:underline"
+            >
+              Browse clubs
+            </a>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+            <h2 className="font-semibold text-gray-900 mb-3">Upcoming Events</h2>
+            <p className="text-sm text-gray-500">
+              No upcoming events yet.
+            </p>
+            <a
+              href="/events"
+              className="mt-3 inline-block text-sm text-blue-600 hover:underline"
+            >
+              View events
+            </a>
           </div>
         </div>
 
-        {/* Role Based Message */}
-        <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-sm text-green-700">
-          ✅ Authentication working — you are logged in as{" "}
-          <strong>{session.user.role}</strong>
-        </div>
-
       </div>
-    </div>
+    </MainLayout>
   )
 }
