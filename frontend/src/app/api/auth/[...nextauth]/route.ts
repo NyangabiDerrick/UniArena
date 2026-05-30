@@ -56,6 +56,23 @@ const handler = NextAuth({
         const user = mockUsers.find(u => u.email === credentials?.email)
 
         if (user && credentials?.password === "password123") {
+          // Sync user to database
+          try {
+            await fetch(`http://localhost:5000/api/users/sync`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                email: user.email,
+                name: user.name,
+                studentId: user.studentId,
+                faculty: user.faculty,
+                role: user.role
+              })
+            })
+          } catch (error) {
+            console.error('Error syncing user to database:', error)
+          }
+
           return user
         }
 
