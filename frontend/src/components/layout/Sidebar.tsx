@@ -31,6 +31,12 @@ const navItems = [
     roles: ["STUDENT", "CLUB_LEADER", "LECTURER", "MODERATOR", "ADMIN"]
   },
   {
+    label: "Manage Club",
+    href: "/clubs/manage",
+    icon: Settings,
+    roles: ["CLUB_LEADER", "ADMIN"]
+  },
+  {
     label: "Sports",
     href: "/sports",
     icon: Trophy,
