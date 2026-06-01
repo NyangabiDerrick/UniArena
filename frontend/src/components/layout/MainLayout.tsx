@@ -22,10 +22,22 @@ export default function MainLayout({
 
   if (status === "loading") {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div
+        className="min-h-screen flex items-center justify-center"
+        style={{ background: "var(--cream)" }}
+      >
         <div className="text-center">
-          <span className="text-4xl">🏟️</span>
-          <p className="mt-2 text-gray-500 text-sm">Loading UniArena...</p>
+          <div
+            className="w-12 h-12 rounded-xl flex items-center justify-center font-bold text-lg mx-auto mb-3"
+            style={{
+              background: "var(--navy-900)",
+              color: "var(--gold-500)",
+              fontFamily: "'Playfair Display', serif"
+            }}
+          >
+            U
+          </div>
+          <p className="text-sm" style={{ color: "var(--muted)" }}>Loading UniArena...</p>
         </div>
       </div>
     )
@@ -34,11 +46,20 @@ export default function MainLayout({
   if (!session) return null
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen" style={{ background: "var(--cream)" }}>
       <Sidebar />
       <Navbar />
-      <main className="ml-64 pt-16 p-6 min-h-screen">
-        {children}
+      <main
+        className="bg-[#F8F7F4]"
+        style={{
+          marginLeft: 240,
+          paddingTop: 60,
+          minHeight: "100vh"
+        }}
+      >
+        <div className="bg-[#F8F7F4]" style={{ minHeight: "100vh" }}>
+          {children}
+        </div>
       </main>
     </div>
   )
