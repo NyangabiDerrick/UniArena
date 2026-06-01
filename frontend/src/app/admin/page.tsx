@@ -1,205 +1,134 @@
 "use client"
 
-import { useSession } from "next-auth/react"
-import {
-  Users,
-  Building2,
-  Calendar,
-  AlertCircle,
-  CheckCircle,
-  XCircle,
-  Clock
-} from "lucide-react"
+import Link from "next/link"
+import { Users, Building2, Calendar, AlertCircle, CheckCircle, XCircle, Clock } from "lucide-react"
 
 const stats = [
-  {
-    label: "Total Users",
-    value: "842",
-    icon: Users,
-    color: "bg-blue-50 text-blue-600",
-    change: "+12 this week"
-  },
-  {
-    label: "Active Clubs",
-    value: "34",
-    icon: Building2,
-    color: "bg-green-50 text-green-600",
-    change: "+2 this month"
-  },
-  {
-    label: "Upcoming Events",
-    value: "18",
-    icon: Calendar,
-    color: "bg-orange-50 text-orange-600",
-    change: "Next 30 days"
-  },
-  {
-    label: "Pending Approvals",
-    value: "7",
-    icon: AlertCircle,
-    color: "bg-red-50 text-red-600",
-    change: "Needs attention"
-  }
+  { label:"Total Users", value:"842", sub:"+12 this week", icon:Users, bg:"#EFF6FF", color:"#1D4ED8" },
+  { label:"Active Clubs", value:"34", sub:"+2 this month", icon:Building2, bg:"#F0FDF4", color:"#15803D" },
+  { label:"Upcoming Events", value:"18", sub:"Next 30 days", icon:Calendar, bg:"#FFF7ED", color:"#C2410C" },
+  { label:"Pending Approvals", value:"7", sub:"Needs attention", icon:AlertCircle, bg:"#FEF2F2", color:"#DC2626" },
 ]
 
-const recentActivity = [
-  {
-    action: "Club request submitted",
-    detail: "Photography Society by John Student",
-    time: "2 minutes ago",
-    type: "pending"
-  },
-  {
-    action: "Event approved",
-    detail: "Annual Sports Day by Sarah Admin",
-    time: "1 hour ago",
-    type: "approved"
-  },
-  {
-    action: "User suspended",
-    detail: "Account violation — user@university.ac",
-    time: "3 hours ago",
-    type: "rejected"
-  },
-  {
-    action: "Club approved",
-    detail: "Debate Society now active",
-    time: "Yesterday",
-    type: "approved"
-  },
-  {
-    action: "New user registered",
-    detail: "newstudent@university.ac joined",
-    time: "Yesterday",
-    type: "pending"
-  }
+const activity = [
+  { action:"Club request submitted", detail:"Photography Society by John Student", time:"2 minutes ago", type:"pending" },
+  { action:"Event approved", detail:"Annual Sports Day by Sarah Admin", time:"1 hour ago", type:"approved" },
+  { action:"User suspended", detail:"Account violation — user@university.ac", time:"3 hours ago", type:"rejected" },
+  { action:"Club approved", detail:"Debate Society now active", time:"Yesterday", type:"approved" },
+  { action:"New user registered", detail:"newstudent@university.ac joined", time:"Yesterday", type:"pending" },
 ]
 
-function StatusIcon({ type }: { type: string }) {
-  if (type === "approved") return <CheckCircle className="w-4 h-4 text-green-500" />
-  if (type === "rejected") return <XCircle className="w-4 h-4 text-red-500" />
-  return <Clock className="w-4 h-4 text-orange-500" />
-}
+const quickActions = [
+  { label:"Manage Users", desc:"View, suspend, change roles", href:"/admin/users", icon:Users, bg:"#EFF6FF", color:"#1D4ED8" },
+  { label:"Approval Queue", desc:"7 items pending review", href:"/admin/approvals", icon:AlertCircle, bg:"#FFF7ED", color:"#C2410C" },
+  { label:"Audit Logs", desc:"View all admin actions", href:"/admin/audit", icon:Clock, bg:"#F5F3FF", color:"#6D28D9" },
+]
 
-function cn(...classes: string[]) {
-  return classes.filter(Boolean).join(" ")
+function StatusDot({ type }: { type: string }) {
+  const color = type === "approved" ? "#16A34A" : type === "rejected" ? "#DC2626" : "#D97706"
+  const Icon = type === "approved" ? CheckCircle : type === "rejected" ? XCircle : Clock
+  return <Icon size={15} color={color} style={{ flexShrink: 0 }} />
 }
 
 export default function AdminPage() {
-  const { data: session } = useSession()
-
   return (
-    <div className="max-w-6xl mx-auto">
+    <div style={{ maxWidth: 1080, margin: "0 auto" }}>
 
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
-        <p className="text-gray-500 mt-1">
-          Platform overview and management
-        </p>
+      <div style={{ marginBottom: 28 }}>
+        <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: 28, fontWeight: 700, color: "#0B1D3A", marginBottom: 4 }}>
+          Admin Dashboard
+        </h1>
+        <p style={{ fontSize: 14, color: "#6B6962" }}>Platform overview and management</p>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {stats.map((stat) => {
-          const Icon = stat.icon
+      {/* Stats */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
+        {stats.map(s => {
+          const Icon = s.icon
           return (
-            <div
-              key={stat.label}
-              className="bg-white rounded-xl shadow-sm border border-gray-100 p-5"
-            >
-              <div className={cn(
-                "w-10 h-10 rounded-lg flex items-center justify-center mb-3",
-                stat.color
-              )}>
-                <Icon className="w-5 h-5" />
+            <div key={s.label} style={{
+              background: "white", borderRadius: 14, padding: "22px",
+              border: "1px solid #E4E2DC"
+            }}>
+              <div style={{
+                width: 40, height: 40, borderRadius: 10,
+                background: s.bg, display: "flex", alignItems: "center", justifyContent: "center",
+                marginBottom: 14
+              }}>
+                <Icon size={18} color={s.color} />
               </div>
-              <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
-              <p className="text-sm text-gray-500 mt-0.5">{stat.label}</p>
-              <p className="text-xs text-gray-400 mt-1">{stat.change}</p>
+              <p style={{ fontFamily: "'Playfair Display', serif", fontSize: 30, fontWeight: 700, color: "#0B1D3A", lineHeight: 1 }}>{s.value}</p>
+              <p style={{ fontSize: 13, fontWeight: 500, color: "#0B1D3A", margin: "4px 0 2px" }}>{s.label}</p>
+              <p style={{ fontSize: 11, color: "#9CA3AF" }}>{s.sub}</p>
             </div>
           )
         })}
       </div>
 
-      {/* Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Bottom Grid */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
 
         {/* Recent Activity */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-          <h2 className="font-semibold text-gray-900 mb-4">Recent Activity</h2>
-          <div className="space-y-3">
-            {recentActivity.map((item, index) => (
-              <div
-                key={index}
-                className="flex items-start gap-3 py-2 border-b border-gray-50 last:border-0"
-              >
-                <StatusIcon type={item.type} />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900">
-                    {item.action}
-                  </p>
-                  <p className="text-xs text-gray-500 truncate">{item.detail}</p>
+        <div style={{ background: "white", borderRadius: 14, padding: "22px", border: "1px solid #E4E2DC" }}>
+          <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 16, color: "#0B1D3A", marginBottom: 16 }}>Recent Activity</h2>
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            {activity.map((item, i) => (
+              <div key={i} style={{
+                display: "flex", alignItems: "flex-start", gap: 12,
+                padding: "12px 0",
+                borderBottom: i < activity.length - 1 ? "1px solid #F3F4F6" : "none"
+              }}>
+                <StatusDot type={item.type} />
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontSize: 13, fontWeight: 500, color: "#0B1D3A" }}>{item.action}</p>
+                  <p style={{ fontSize: 11, color: "#9CA3AF", marginTop: 2 }}>{item.detail}</p>
                 </div>
-                <span className="text-xs text-gray-400 whitespace-nowrap">
-                  {item.time}
-                </span>
+                <span style={{ fontSize: 11, color: "#9CA3AF", whiteSpace: "nowrap" }}>{item.time}</span>
               </div>
             ))}
           </div>
         </div>
 
         {/* Quick Actions */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-          <h2 className="font-semibold text-gray-900 mb-4">Quick Actions</h2>
-          <div className="space-y-2">
-            <a
-              href="/admin/users"
-              className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition group"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
-                  <Users className="w-4 h-4 text-blue-600" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-900">Manage Users</p>
-                  <p className="text-xs text-gray-500">View, suspend, change roles</p>
-                </div>
-              </div>
-              <span className="text-gray-400 group-hover:text-gray-600">›</span>
-            </a>
-
-            <a
-              href="/admin/approvals"
-              className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition group"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-orange-50 rounded-lg flex items-center justify-center">
-                  <AlertCircle className="w-4 h-4 text-orange-600" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-900">Approval Queue</p>
-                  <p className="text-xs text-gray-500">7 items pending review</p>
-                </div>
-              </div>
-              <span className="text-gray-400 group-hover:text-gray-600">›</span>
-            </a>
-
-            <a
-              href="/admin/audit"
-              className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition group"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-purple-50 rounded-lg flex items-center justify-center">
-                  <Clock className="w-4 h-4 text-purple-600" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-900">Audit Logs</p>
-                  <p className="text-xs text-gray-500">View all admin actions</p>
-                </div>
-              </div>
-              <span className="text-gray-400 group-hover:text-gray-600">›</span>
-            </a>
+        <div style={{ background: "white", borderRadius: 14, padding: "22px", border: "1px solid #E4E2DC" }}>
+          <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 16, color: "#0B1D3A", marginBottom: 16 }}>Quick Actions</h2>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {quickActions.map(action => {
+              const Icon = action.icon
+              return (
+                <Link key={action.href} href={action.href} style={{
+                  display: "flex", alignItems: "center", justifyContent: "space-between",
+                  padding: "14px 16px", borderRadius: 10, textDecoration: "none",
+                  border: "1px solid #F3F4F6", transition: "border-color 0.15s, background 0.15s"
+                }}
+                  onMouseEnter={e => {
+                    const el = e.currentTarget as HTMLElement
+                    el.style.background = "#FAFAFA"
+                    el.style.borderColor = "#E4E2DC"
+                  }}
+                  onMouseLeave={e => {
+                    const el = e.currentTarget as HTMLElement
+                    el.style.background = "transparent"
+                    el.style.borderColor = "#F3F4F6"
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <div style={{
+                      width: 36, height: 36, borderRadius: 9,
+                      background: action.bg, display: "flex", alignItems: "center", justifyContent: "center"
+                    }}>
+                      <Icon size={16} color={action.color} />
+                    </div>
+                    <div>
+                      <p style={{ fontSize: 13, fontWeight: 600, color: "#0B1D3A" }}>{action.label}</p>
+                      <p style={{ fontSize: 11, color: "#9CA3AF" }}>{action.desc}</p>
+                    </div>
+                  </div>
+                  <span style={{ fontSize: 16, color: "#9CA3AF" }}>›</span>
+                </Link>
+              )
+            })}
           </div>
         </div>
 
