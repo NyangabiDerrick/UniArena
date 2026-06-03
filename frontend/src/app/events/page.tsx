@@ -4,6 +4,8 @@ import { useState } from "react"
 import MainLayout from "@/components/layout/MainLayout"
 import { Search, Calendar, Clock, MapPin, Users } from "lucide-react"
 import Link from "next/link"
+import { api } from "@/lib/api"
+import { useEffect } from "react"
 
 const categories = ["All","Club","Sports","University","Academic","Social"]
 
@@ -25,16 +27,30 @@ const catColors: Record<string, { bg: string; text: string }> = {
 }
 
 export default function EventsPage() {
+  const [events, setEvents] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
   const [selected, setSelected] = useState("All")
   const [freeOnly, setFreeOnly] = useState(false)
 
-  const filtered = mockEvents.filter(e => {
-    const ms = e.title.toLowerCase().includes(search.toLowerCase()) || e.organiser.toLowerCase().includes(search.toLowerCase())
-    const mc = selected === "All" || e.category === selected
-    const mf = !freeOnly || e.isFree
-    return ms && mc && mf
-  })
+  useEffect(() => {
+    const fetchEvents = async () => {
+      try {
+        setLoading(true)
+        const res = await api.getEvents({ search, free: freeOnly })
+        setEvents(res.data)
+      } catch (err) {
+        console.error('Failed to fetch events:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchEvents()
+  }, [search, freeOnly])
+
+  const filtered = events.filter(e =>
+    selected === "All" || e.category === selected
+  )
 
   return (
     <MainLayout>

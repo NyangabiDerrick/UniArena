@@ -4,6 +4,8 @@ import { useState } from "react"
 import MainLayout from "@/components/layout/MainLayout"
 import { Search } from "lucide-react"
 import Link from "next/link"
+import { api } from "@/lib/api"
+import { useEffect } from "react"
 
 const filters = ["All","Clubs","Sports","University"]
 
@@ -23,14 +25,31 @@ const catColors: Record<string, { bg: string; text: string }> = {
 }
 
 export default function NewsPage() {
+  const [articles, setArticles] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
   const [selected, setSelected] = useState("All")
 
-  const filtered = mockArticles.filter(a => {
-    const ms = a.title.toLowerCase().includes(search.toLowerCase()) || a.excerpt.toLowerCase().includes(search.toLowerCase())
-    const mc = selected === "All" || a.category === selected
-    return ms && mc
-  })
+  useEffect(() => {
+    const fetchArticles = async () => {
+      try {
+        setLoading(true)
+        const res = await api.getArticles({ search })
+        setArticles(res.data)
+      } catch (err) {
+        console.error('Failed to fetch articles:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchArticles()
+  }, [search])
+
+  const filtered = articles.filter(a =>
+    selected === "All" || a.category === selected
+  )
+  const pinned = filtered.filter(a => a.isPinned)
+  const regular = filtered.filter(a => !a.isPinned)
 
   const pinned = filtered.filter(a => a.isPinned)
   const regular = filtered.filter(a => !a.isPinned)
