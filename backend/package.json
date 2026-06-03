@@ -9,7 +9,8 @@
     "start": "node dist/index.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
-    "prisma:studio": "prisma studio"
+    "prisma:studio": "prisma studio",
+    "prisma:seed": "ts-node prisma/seed.ts"
   },
   "keywords": [],
   "author": "",
@@ -25,7 +26,8 @@
     "express-validator": "^7.0.0",
     "helmet": "^7.0.0",
     "jsonwebtoken": "^9.0.0",
-    "morgan": "^1.10.0"
+    "morgan": "^1.10.0",
+    "uuid": "^14.0.0"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
@@ -35,6 +37,7 @@
     "@types/jsonwebtoken": "^9.0.0",
     "@types/morgan": "^1.9.9",
     "@types/node": "^20.0.0",
+    "@types/uuid": "^10.0.0",
     "nodemon": "^3.0.0",
     "prisma": "^6.0.0",
     "ts-node": "^10.9.0",

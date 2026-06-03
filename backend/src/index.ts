@@ -7,6 +7,12 @@ import dotenv from 'dotenv'
 import { errorHandler, notFound } from './middleware/errorHandler'
 import { generalLimiter } from './middleware/rateLimiter'
 import userRoutes from './routes/users'
+import userRoutes from './routes/users'
+import clubRoutes from './routes/clubs'
+import sportRoutes from './routes/sports'
+import eventRoutes from './routes/events'
+import articleRoutes from './routes/articles'
+import adminRoutes from './routes/admin'
 
 dotenv.config()
 
@@ -43,6 +49,11 @@ app.get('/health', (req, res) => {
 
 // Routes
 app.use('/api/users', userRoutes)
+app.use('/api/clubs', clubRoutes)
+app.use('/api/sports', sportRoutes)
+app.use('/api/events', eventRoutes)
+app.use('/api/articles', articleRoutes)
+app.use('/api/admin', adminRoutes)
 
 // Test protected route
 app.get('/api/test/student', 

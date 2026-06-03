@@ -4,6 +4,8 @@ import { useState } from "react"
 import MainLayout from "@/components/layout/MainLayout"
 import { Search, Users } from "lucide-react"
 import Link from "next/link"
+import { api } from "@/lib/api"
+import { useEffect } from "react"
 
 const sports = ["All","Football","Basketball","Swimming","Athletics","Rugby","Tennis","Cricket","Volleyball"]
 
@@ -19,14 +21,27 @@ const mockTeams = [
 const sportEmoji: Record<string,string> = { Football:"⚽", Basketball:"🏀", Swimming:"🏊", Athletics:"🏃", Rugby:"🏉", Tennis:"🎾", Cricket:"🏏", Volleyball:"🏐" }
 
 export default function SportsPage() {
+  const [teams, setTeams] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
   const [selected, setSelected] = useState("All")
 
-  const filtered = mockTeams.filter(t => {
-    const ms = t.name.toLowerCase().includes(search.toLowerCase()) || t.sport.toLowerCase().includes(search.toLowerCase())
-    const mc = selected === "All" || t.sport === selected
-    return ms && mc
-  })
+  useEffect(() => {
+    const fetchTeams = async () => {
+      try {
+        setLoading(true)
+        const res = await api.getTeams({ sport: selected, search })
+        setTeams(res.data)
+      } catch (err) {
+        console.error('Failed to fetch teams:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchTeams()
+  }, [search, selected])
+
+  const filtered = teams
 
   return (
     <MainLayout>
