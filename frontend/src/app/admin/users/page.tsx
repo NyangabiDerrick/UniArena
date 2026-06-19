@@ -4,194 +4,213 @@ import { useState } from "react"
 import { Search, Filter } from "lucide-react"
 
 const mockUsers = [
-  {
-    id: "1",
-    name: "John Student",
-    email: "student@university.ac",
-    role: "STUDENT",
-    faculty: "Computer Science",
-    studentId: "UA-2024-001",
-    isActive: true,
-    joinedAt: "Jan 2026"
-  },
-  {
-    id: "2",
-    name: "Jane Leader",
-    email: "leader@university.ac",
-    role: "CLUB_LEADER",
-    faculty: "Business",
-    studentId: "UA-2024-002",
-    isActive: true,
-    joinedAt: "Jan 2026"
-  },
-  {
-    id: "3",
-    name: "Mike Captain",
-    email: "captain@university.ac",
-    role: "SPORTS_CAPTAIN",
-    faculty: "Sports Science",
-    studentId: "UA-2024-003",
-    isActive: true,
-    joinedAt: "Jan 2026"
-  },
-  {
-    id: "4",
-    name: "Sarah Admin",
-    email: "admin@university.ac",
-    role: "ADMIN",
-    faculty: "Administration",
-    studentId: "UA-2024-004",
-    isActive: true,
-    joinedAt: "Jan 2026"
-  },
-  {
-    id: "5",
-    name: "Dr. Smith",
-    email: "lecturer@university.ac",
-    role: "LECTURER",
-    faculty: "Computer Science",
-    studentId: "UA-STAFF-001",
-    isActive: true,
-    joinedAt: "Jan 2026"
-  }
+  { id:"1", name:"John Student", email:"student@university.ac", role:"STUDENT", faculty:"Computer Science", studentId:"UA-2024-001", isActive:true, joinedAt:"Jan 2026" },
+  { id:"2", name:"Jane Leader", email:"leader@university.ac", role:"CLUB_LEADER", faculty:"Business", studentId:"UA-2024-002", isActive:true, joinedAt:"Jan 2026" },
+  { id:"3", name:"Mike Captain", email:"captain@university.ac", role:"SPORTS_CAPTAIN", faculty:"Sports Science", studentId:"UA-2024-003", isActive:true, joinedAt:"Jan 2026" },
+  { id:"4", name:"Sarah Admin", email:"admin@university.ac", role:"ADMIN", faculty:"Administration", studentId:"UA-2024-004", isActive:true, joinedAt:"Jan 2026" },
+  { id:"5", name:"Dr. Smith", email:"lecturer@university.ac", role:"LECTURER", faculty:"Computer Science", studentId:"UA-STAFF-001", isActive:true, joinedAt:"Jan 2026" },
 ]
 
-const roleBadgeColor: Record<string, string> = {
-  STUDENT: "bg-gray-100 text-gray-700",
-  CLUB_LEADER: "bg-blue-100 text-blue-700",
-  SPORTS_CAPTAIN: "bg-green-100 text-green-700",
-  LECTURER: "bg-purple-100 text-purple-700",
-  MODERATOR: "bg-orange-100 text-orange-700",
-  ADMIN: "bg-red-100 text-red-700"
+const roleBadge: Record<string, { bg: string; text: string }> = {
+  STUDENT: { bg: "#F1F5F9", text: "#475569" },
+  CLUB_LEADER: { bg: "#EFF6FF", text: "#1D4ED8" },
+  SPORTS_CAPTAIN: { bg: "#F0FDF4", text: "#15803D" },
+  LECTURER: { bg: "#F5F3FF", text: "#6D28D9" },
+  MODERATOR: { bg: "#FFF7ED", text: "#C2410C" },
+  ADMIN: { bg: "#FEF2F2", text: "#DC2626" },
 }
 
 export default function UsersPage() {
+  const [users, setUsers] = useState(mockUsers)
   const [search, setSearch] = useState("")
   const [roleFilter, setRoleFilter] = useState("ALL")
 
-  const filtered = mockUsers.filter(user => {
-    const matchesSearch =
-      user.name.toLowerCase().includes(search.toLowerCase()) ||
-      user.email.toLowerCase().includes(search.toLowerCase())
-    const matchesRole = roleFilter === "ALL" || user.role === roleFilter
-    return matchesSearch && matchesRole
+  const filtered = users.filter(u => {
+    const ms = u.name.toLowerCase().includes(search.toLowerCase()) ||
+      u.email.toLowerCase().includes(search.toLowerCase())
+    const mr = roleFilter === "ALL" || u.role === roleFilter
+    return ms && mr
   })
 
+  const handleSuspend = (id: string) => {
+    setUsers(prev => prev.map(u =>
+      u.id === id ? { ...u, isActive: !u.isActive } : u
+    ))
+  }
+
   return (
-    <div className="max-w-6xl mx-auto">
+    <div style={{ maxWidth: 1080, margin: "0 auto" }}>
 
       {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
-        <p className="text-gray-500 mt-1">
+      <div style={{ marginBottom: 28 }}>
+        <h1 style={{
+          fontFamily: "'Playfair Display', serif",
+          fontSize: 28, fontWeight: 700, color: "#0B1D3A", marginBottom: 4
+        }}>User Management</h1>
+        <p style={{ fontSize: 14, color: "#6B6962" }}>
           Manage all platform users, roles and access
         </p>
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-4">
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search by name or email..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-          <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4 text-gray-400" />
-            <select
-              value={roleFilter}
-              onChange={(e) => setRoleFilter(e.target.value)}
-              className="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="ALL">All Roles</option>
-              <option value="STUDENT">Student</option>
-              <option value="CLUB_LEADER">Club Leader</option>
-              <option value="SPORTS_CAPTAIN">Sports Captain</option>
-              <option value="LECTURER">Lecturer</option>
-              <option value="MODERATOR">Moderator</option>
-              <option value="ADMIN">Admin</option>
-            </select>
-          </div>
+      <div style={{
+        background: "white", borderRadius: 14, padding: "18px 20px",
+        border: "1px solid #E4E2DC", marginBottom: 16,
+        display: "flex", gap: 12, flexWrap: "wrap"
+      }}>
+        <div style={{ position: "relative", flex: 1, minWidth: 200 }}>
+          <Search size={14} style={{
+            position: "absolute", left: 12, top: "50%",
+            transform: "translateY(-50%)", color: "#9CA3AF"
+          }} />
+          <input
+            type="text"
+            placeholder="Search by name or email..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            style={{
+              width: "100%", padding: "9px 12px 9px 36px",
+              fontSize: 13, borderRadius: 8,
+              border: "1.5px solid #E4E2DC", outline: "none",
+              fontFamily: "'Inter', sans-serif"
+            }}
+          />
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <Filter size={14} color="#9CA3AF" />
+          <select
+            value={roleFilter}
+            onChange={e => setRoleFilter(e.target.value)}
+            style={{
+              padding: "9px 12px", fontSize: 13, borderRadius: 8,
+              border: "1.5px solid #E4E2DC", outline: "none",
+              fontFamily: "'Inter', sans-serif", background: "white",
+              cursor: "pointer"
+            }}
+          >
+            <option value="ALL">All Roles</option>
+            <option value="STUDENT">Student</option>
+            <option value="CLUB_LEADER">Club Leader</option>
+            <option value="SPORTS_CAPTAIN">Sports Captain</option>
+            <option value="LECTURER">Lecturer</option>
+            <option value="MODERATOR">Moderator</option>
+            <option value="ADMIN">Admin</option>
+          </select>
         </div>
       </div>
 
-      {/* Users Table */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-50 border-b border-gray-100">
-            <tr>
-              <th className="text-left px-4 py-3 font-medium text-gray-600">Name</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-600">Email</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-600">Role</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-600">Faculty</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-600">Status</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-600">Actions</th>
+      {/* Table */}
+      <div style={{
+        background: "white", borderRadius: 14,
+        border: "1px solid #E4E2DC", overflow: "hidden"
+      }}>
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr style={{ background: "#F9FAFB", borderBottom: "1px solid #E4E2DC" }}>
+              {["Name", "Email", "Role", "Faculty", "Status", "Actions"].map(h => (
+                <th key={h} style={{
+                  padding: "12px 16px", textAlign: "left",
+                  fontSize: 12, fontWeight: 600, color: "#6B6962"
+                }}>{h}</th>
+              ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-50">
-            {filtered.map((user) => (
-              <tr key={user.id} className="hover:bg-gray-50 transition">
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-semibold text-xs">
-                      {user.name.charAt(0)}
+          <tbody>
+            {filtered.map((user, i) => {
+              const badge = roleBadge[user.role] || { bg: "#F1F5F9", text: "#475569" }
+              return (
+                <tr key={user.id} style={{
+                  borderBottom: i < filtered.length - 1 ? "1px solid #F3F4F6" : "none"
+                }}>
+                  <td style={{ padding: "14px 16px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <div style={{
+                        width: 34, height: 34, borderRadius: 8,
+                        background: "#EFF6FF", color: "#1D4ED8",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        fontWeight: 700, fontSize: 13, flexShrink: 0
+                      }}>{user.name.charAt(0)}</div>
+                      <div>
+                        <p style={{ fontSize: 13, fontWeight: 500, color: "#0B1D3A" }}>
+                          {user.name}
+                        </p>
+                        <p style={{ fontSize: 11, color: "#9CA3AF" }}>{user.studentId}</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-medium text-gray-900">{user.name}</p>
-                      <p className="text-xs text-gray-400">{user.studentId}</p>
+                  </td>
+                  <td style={{ padding: "14px 16px", fontSize: 13, color: "#6B6962" }}>
+                    {user.email}
+                  </td>
+                  <td style={{ padding: "14px 16px" }}>
+                    <span style={{
+                      fontSize: 11, fontWeight: 500, padding: "3px 10px",
+                      borderRadius: 99, background: badge.bg, color: badge.text
+                    }}>{user.role}</span>
+                  </td>
+                  <td style={{ padding: "14px 16px", fontSize: 13, color: "#6B6962" }}>
+                    {user.faculty}
+                  </td>
+                  <td style={{ padding: "14px 16px" }}>
+                    <span style={{
+                      fontSize: 11, fontWeight: 500, padding: "3px 10px",
+                      borderRadius: 99,
+                      background: user.isActive ? "#F0FDF4" : "#FEF2F2",
+                      color: user.isActive ? "#15803D" : "#DC2626"
+                    }}>
+                      {user.isActive ? "Active" : "Suspended"}
+                    </span>
+                  </td>
+                  <td style={{ padding: "14px 16px" }}>
+                    <div style={{ display: "flex", gap: 12 }}>
+                      <button style={{
+                        fontSize: 12, fontWeight: 500, color: "#1D4ED8",
+                        background: "none", border: "none", cursor: "pointer",
+                        fontFamily: "'Inter', sans-serif"
+                      }}>Edit</button>
+                      <button
+                        onClick={() => handleSuspend(user.id)}
+                        style={{
+                          fontSize: 12, fontWeight: 500,
+                          color: user.isActive ? "#DC2626" : "#15803D",
+                          background: "none", border: "none", cursor: "pointer",
+                          fontFamily: "'Inter', sans-serif"
+                        }}
+                      >
+                        {user.isActive ? "Suspend" : "Activate"}
+                      </button>
                     </div>
-                  </div>
-                </td>
-                <td className="px-4 py-3 text-gray-600">{user.email}</td>
-                <td className="px-4 py-3">
-                  <span className={`text-xs font-medium px-2 py-1 rounded-full ${roleBadgeColor[user.role]}`}>
-                    {user.role}
-                  </span>
-                </td>
-                <td className="px-4 py-3 text-gray-600">{user.faculty}</td>
-                <td className="px-4 py-3">
-                  <span className={`text-xs font-medium px-2 py-1 rounded-full ${user.isActive ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
-                    {user.isActive ? "Active" : "Suspended"}
-                  </span>
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-2">
-                    <button className="text-xs text-blue-600 hover:underline">
-                      Edit
-                    </button>
-                    <button className="text-xs text-red-600 hover:underline">
-                      Suspend
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
+                  </td>
+                </tr>
+              )
+            })}
           </tbody>
         </table>
 
         {filtered.length === 0 && (
-          <div className="text-center py-8 text-gray-400 text-sm">
-            No users found matching your search.
+          <div style={{ padding: "48px", textAlign: "center" }}>
+            <p style={{ fontSize: 14, color: "#6B6962" }}>No users found matching your search</p>
           </div>
         )}
 
-        {/* Pagination */}
-        <div className="px-4 py-3 border-t border-gray-100 flex items-center justify-between">
-          <p className="text-xs text-gray-500">
-            Showing {filtered.length} of {mockUsers.length} users
+        {/* Footer */}
+        <div style={{
+          padding: "12px 16px", borderTop: "1px solid #E4E2DC",
+          display: "flex", justifyContent: "space-between", alignItems: "center"
+        }}>
+          <p style={{ fontSize: 12, color: "#9CA3AF" }}>
+            Showing {filtered.length} of {users.length} users
           </p>
-          <div className="flex gap-2">
-            <button className="text-xs px-3 py-1 border border-gray-200 rounded-lg hover:bg-gray-50">
-              Previous
-            </button>
-            <button className="text-xs px-3 py-1 border border-gray-200 rounded-lg hover:bg-gray-50">
-              Next
-            </button>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button style={{
+              fontSize: 12, padding: "6px 14px", borderRadius: 8,
+              border: "1px solid #E4E2DC", background: "white",
+              cursor: "pointer", fontFamily: "'Inter', sans-serif"
+            }}>Previous</button>
+            <button style={{
+              fontSize: 12, padding: "6px 14px", borderRadius: 8,
+              border: "1px solid #E4E2DC", background: "white",
+              cursor: "pointer", fontFamily: "'Inter', sans-serif"
+            }}>Next</button>
           </div>
         </div>
       </div>

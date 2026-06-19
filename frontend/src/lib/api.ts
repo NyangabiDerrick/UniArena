@@ -4,16 +4,19 @@ async function request<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<{ success: boolean; data: T; message: string }> {
+
+  // Get token from NextAuth session cookie
   const res = await fetch(`${API_URL}${endpoint}`, {
     headers: {
       'Content-Type': 'application/json',
       ...options.headers
     },
+    credentials: 'include',
     ...options
   })
 
   if (!res.ok) {
-    const error = await res.json()
+    const error = await res.json().catch(() => ({ message: 'Request failed' }))
     throw new Error(error.message || 'Request failed')
   }
 

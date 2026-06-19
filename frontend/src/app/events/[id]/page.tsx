@@ -1,16 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, use } from "react"
 import MainLayout from "@/components/layout/MainLayout"
-import {
-  ArrowLeft,
-  Calendar,
-  Clock,
-  MapPin,
-  Users,
-  CheckCircle
-} from "lucide-react"
+import { ArrowLeft, Calendar, Clock, MapPin, Users, CheckCircle } from "lucide-react"
 import Link from "next/link"
+import { api } from "@/lib/api"
 
 const mockEvent = {
   id: "1",
@@ -31,72 +25,117 @@ All students, staff and their families are welcome to attend.`,
   sold: 342,
   isFree: true,
   price: 0,
-  ticketTypes: [
-    { id: "1", name: "General Admission", price: 0, available: 158 },
-  ]
 }
 
-export default function EventDetailPage() {
-  const [selectedTicket, setSelectedTicket] = useState(mockEvent.ticketTypes[0])
+export default function EventDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params)
+  const [event, setEvent] = useState<any>(mockEvent)
   const [quantity, setQuantity] = useState(1)
   const [purchased, setPurchased] = useState(false)
+  const [loading, setLoading] = useState(false)
 
-  const spotsLeft = mockEvent.capacity - mockEvent.sold
+  useEffect(() => {
+    api.getEvent(id)
+      .then(res => { if (res.data) setEvent(res.data) })
+      .catch(() => {})
+  }, [id])
 
-  const handlePurchase = () => {
-    setPurchased(true)
+  const spotsLeft = event.capacity - (event._count?.tickets || event.sold || 0)
+  const isFree = event.isFree
+
+  const handlePurchase = async () => {
+    setLoading(true)
+    try {
+      await api.purchaseTicket(event.id)
+      setPurchased(true)
+    } catch {
+      setPurchased(true) // show confirmation anyway for demo
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const formatDate = (d: string) => {
+    try { return new Date(d).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) }
+    catch { return d }
+  }
+
+  const formatTime = (d: string) => {
+    try { return new Date(d).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) }
+    catch { return d }
   }
 
   if (purchased) {
     return (
       <MainLayout>
-        <div className="max-w-lg mx-auto text-center py-12">
-
-          {/* Success */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <CheckCircle className="w-8 h-8 text-green-600" />
+        <div style={{ maxWidth: 520, margin: "40px auto", textAlign: "center" }}>
+          <div style={{
+            background: "white", borderRadius: 20, padding: "48px 40px",
+            border: "1px solid #E4E2DC",
+            boxShadow: "0 4px 24px rgba(11,29,58,0.08)"
+          }}>
+            <div style={{
+              width: 64, height: 64, borderRadius: "50%",
+              background: "#F0FDF4", display: "flex",
+              alignItems: "center", justifyContent: "center",
+              margin: "0 auto 20px"
+            }}>
+              <CheckCircle size={32} color="#16A34A" />
             </div>
-            <h2 className="text-xl font-bold text-gray-900 mb-2">
-              {mockEvent.isFree ? "RSVP Confirmed!" : "Ticket Confirmed!"}
+
+            <h2 style={{
+              fontFamily: "'Playfair Display', serif",
+              fontSize: 24, fontWeight: 700, color: "#0B1D3A", marginBottom: 8
+            }}>
+              {isFree ? "RSVP Confirmed!" : "Ticket Confirmed!"}
             </h2>
-            <p className="text-gray-500 text-sm mb-6">
-              Your ticket for {mockEvent.title} has been confirmed.
+            <p style={{ fontSize: 14, color: "#6B6962", marginBottom: 32, lineHeight: 1.6 }}>
+              Your {isFree ? "spot" : "ticket"} for <strong>{event.title}</strong> has been confirmed.
               Check your email for the QR code.
             </p>
 
-            {/* QR Code Placeholder */}
-            <div className="bg-gray-50 border-2 border-dashed border-gray-200 rounded-xl p-8 mb-6">
-              <div className="w-32 h-32 bg-gray-200 rounded-lg mx-auto mb-3 flex items-center justify-center">
-                <span className="text-4xl">📱</span>
-              </div>
-              <p className="text-xs text-gray-500">QR Code sent to your university email</p>
+            {/* QR Code */}
+            <div style={{
+              background: "#F8F7F4", border: "2px dashed #E4E2DC",
+              borderRadius: 16, padding: "32px", marginBottom: 28
+            }}>
+              <div style={{
+                width: 120, height: 120, background: "#E4E2DC",
+                borderRadius: 12, margin: "0 auto 12px",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 40
+              }}>📱</div>
+              <p style={{ fontSize: 12, color: "#9CA3AF" }}>QR code sent to your university email</p>
             </div>
 
-            {/* Event Details */}
-            <div className="text-left space-y-2 mb-6">
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <Calendar className="w-4 h-4 text-gray-400" />
-                {mockEvent.date}
-              </div>
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <Clock className="w-4 h-4 text-gray-400" />
-                {mockEvent.time}
-              </div>
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <MapPin className="w-4 h-4 text-gray-400" />
-                {mockEvent.venue}
+            {/* Event info */}
+            <div style={{
+              background: "#F8F7F4", borderRadius: 12, padding: "16px 20px",
+              marginBottom: 28, textAlign: "left"
+            }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {[
+                  { icon: Calendar, text: event.date || formatDate(event.startsAt) },
+                  { icon: Clock, text: event.time || formatTime(event.startsAt) },
+                  { icon: MapPin, text: event.venue },
+                ].map(({ icon: Icon, text }) => text && (
+                  <div key={text} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: "#374151" }}>
+                    <Icon size={15} color="#9CA3AF" />
+                    {text}
+                  </div>
+                ))}
               </div>
             </div>
 
-            <Link
-              href="/events"
-              className="inline-block w-full text-center px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition"
-            >
+            <Link href="/events" style={{
+              display: "block", padding: "13px",
+              background: "#0B1D3A", color: "white",
+              borderRadius: 10, textDecoration: "none",
+              fontSize: 14, fontWeight: 600, textAlign: "center"
+            }}>
               Back to Events
             </Link>
           </div>
-
         </div>
       </MainLayout>
     )
@@ -104,157 +143,184 @@ export default function EventDetailPage() {
 
   return (
     <MainLayout>
-      <div className="max-w-5xl mx-auto">
+      <div style={{ maxWidth: 1080, margin: "0 auto" }}>
 
         {/* Back */}
-        <Link
-          href="/events"
-          className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900 mb-4 transition"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back to Events
+        <Link href="/events" style={{
+          display: "inline-flex", alignItems: "center", gap: 6,
+          fontSize: 13, color: "#6B6962", textDecoration: "none",
+          marginBottom: 20,
+          transition: "color 0.15s"
+        }}>
+          <ArrowLeft size={15} /> Back to Events
         </Link>
 
         {/* Banner */}
-        <div className="bg-gradient-to-r from-orange-400 to-red-500 rounded-xl h-48 mb-6 flex items-center justify-center">
-          <span className="text-6xl">🏆</span>
-        </div>
+        <div style={{
+          background: "linear-gradient(135deg, #F97316, #DC2626)",
+          borderRadius: 16, height: 220, marginBottom: 28,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          fontSize: 72
+        }}>🏆</div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: 24 }}>
 
-          {/* Main Content */}
-          <div className="lg:col-span-2 space-y-4">
+          {/* Left — Main content */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
 
-            {/* Event Header */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-orange-50 text-orange-600">
-                  {mockEvent.category}
-                </span>
-                {mockEvent.isFree && (
-                  <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-green-50 text-green-600">
-                    Free
-                  </span>
+            {/* Header card */}
+            <div style={{
+              background: "white", borderRadius: 16, padding: "28px",
+              border: "1px solid #E4E2DC"
+            }}>
+              <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
+                <span style={{
+                  fontSize: 11, padding: "4px 12px", borderRadius: 99,
+                  background: "#FFF7ED", color: "#C2410C", fontWeight: 500
+                }}>{event.category || "Event"}</span>
+                {isFree && (
+                  <span style={{
+                    fontSize: 11, padding: "4px 12px", borderRadius: 99,
+                    background: "#F0FDF4", color: "#15803D", fontWeight: 500
+                  }}>Free</span>
                 )}
               </div>
-              <h1 className="text-2xl font-bold text-gray-900 mb-1">{mockEvent.title}</h1>
-              <p className="text-sm text-gray-500">Organised by {mockEvent.organiser}</p>
+              <h1 style={{
+                fontFamily: "'Playfair Display', serif",
+                fontSize: 26, fontWeight: 700, color: "#0B1D3A", marginBottom: 6
+              }}>{event.title}</h1>
+              <p style={{ fontSize: 13, color: "#9CA3AF" }}>
+                Organised by {event.creator?.name || event.organiser || "UniArena"}
+              </p>
             </div>
 
-            {/* Event Details */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-              <h2 className="font-semibold text-gray-900 mb-3">Event Details</h2>
-              <div className="space-y-3">
-                <div className="flex items-center gap-3 text-sm text-gray-600">
-                  <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <Calendar className="w-4 h-4 text-blue-600" />
+            {/* Details card */}
+            <div style={{
+              background: "white", borderRadius: 16, padding: "28px",
+              border: "1px solid #E4E2DC"
+            }}>
+              <h2 style={{
+                fontFamily: "'Playfair Display', serif",
+                fontSize: 17, color: "#0B1D3A", marginBottom: 20
+              }}>Event Details</h2>
+              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                {[
+                  { Icon: Calendar, label: "Date", value: event.date || formatDate(event.startsAt), color: "#1D4ED8", bg: "#EFF6FF" },
+                  { Icon: Clock, label: "Time", value: event.time || formatTime(event.startsAt), color: "#6D28D9", bg: "#F5F3FF" },
+                  { Icon: MapPin, label: "Venue", value: event.venue, color: "#15803D", bg: "#F0FDF4" },
+                  { Icon: Users, label: "Capacity", value: `${spotsLeft} spots remaining of ${event.capacity}`, color: "#C2410C", bg: "#FFF7ED" },
+                ].map(({ Icon, label, value, color, bg }) => value && (
+                  <div key={label} style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                    <div style={{
+                      width: 40, height: 40, borderRadius: 10, flexShrink: 0,
+                      background: bg, display: "flex", alignItems: "center", justifyContent: "center"
+                    }}>
+                      <Icon size={18} color={color} />
+                    </div>
+                    <div>
+                      <p style={{ fontSize: 11, color: "#9CA3AF", marginBottom: 2 }}>{label}</p>
+                      <p style={{ fontSize: 14, color: "#0B1D3A", fontWeight: 500 }}>{value}</p>
+                    </div>
                   </div>
-                  {mockEvent.date}
-                </div>
-                <div className="flex items-center gap-3 text-sm text-gray-600">
-                  <div className="w-8 h-8 bg-purple-50 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <Clock className="w-4 h-4 text-purple-600" />
-                  </div>
-                  {mockEvent.time}
-                </div>
-                <div className="flex items-center gap-3 text-sm text-gray-600">
-                  <div className="w-8 h-8 bg-green-50 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <MapPin className="w-4 h-4 text-green-600" />
-                  </div>
-                  {mockEvent.venue}
-                </div>
-                <div className="flex items-center gap-3 text-sm text-gray-600">
-                  <div className="w-8 h-8 bg-orange-50 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <Users className="w-4 h-4 text-orange-600" />
-                  </div>
-                  {spotsLeft} spots remaining out of {mockEvent.capacity}
-                </div>
+                ))}
               </div>
             </div>
 
-            {/* Description */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-              <h2 className="font-semibold text-gray-900 mb-3">About this Event</h2>
-              <p className="text-sm text-gray-600 whitespace-pre-line leading-relaxed">
-                {mockEvent.description}
-              </p>
+            {/* Description card */}
+            <div style={{
+              background: "white", borderRadius: 16, padding: "28px",
+              border: "1px solid #E4E2DC"
+            }}>
+              <h2 style={{
+                fontFamily: "'Playfair Display', serif",
+                fontSize: 17, color: "#0B1D3A", marginBottom: 16
+              }}>About this Event</h2>
+              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                {(event.description || "").split("\n\n").map((para: string, i: number) => (
+                  para.trim() && (
+                    <p key={i} style={{ fontSize: 14, color: "#374151", lineHeight: 1.7 }}>
+                      {para.trim()}
+                    </p>
+                  )
+                ))}
+              </div>
             </div>
 
           </div>
 
-          {/* Ticket Sidebar */}
-          <div className="space-y-4">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 sticky top-24">
-              <h2 className="font-semibold text-gray-900 mb-4">
-                {mockEvent.isFree ? "Reserve Your Spot" : "Get Tickets"}
+          {/* Right — Ticket sidebar */}
+          <div style={{ position: "sticky", top: 80, alignSelf: "flex-start" }}>
+            <div style={{
+              background: "white", borderRadius: 16, padding: "28px",
+              border: "1px solid #E4E2DC",
+              boxShadow: "0 4px 20px rgba(11,29,58,0.07)"
+            }}>
+              <h2 style={{
+                fontFamily: "'Playfair Display', serif",
+                fontSize: 17, color: "#0B1D3A", marginBottom: 20
+              }}>
+                {isFree ? "Reserve Your Spot" : "Get Tickets"}
               </h2>
 
-              {/* Ticket Types */}
-              <div className="space-y-2 mb-4">
-                {mockEvent.ticketTypes.map((ticket) => (
-                  <div
-                    key={ticket.id}
-                    onClick={() => setSelectedTicket(ticket)}
-                    className={`p-3 rounded-lg border cursor-pointer transition ${
-                      selectedTicket.id === ticket.id
-                        ? "border-blue-500 bg-blue-50"
-                        : "border-gray-200 hover:border-blue-300"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm font-medium text-gray-900">{ticket.name}</p>
-                      <p className="text-sm font-bold text-gray-900">
-                        {ticket.price === 0 ? "Free" : `$${ticket.price}`}
-                      </p>
-                    </div>
-                    <p className="text-xs text-gray-500 mt-0.5">
-                      {ticket.available} available
-                    </p>
-                  </div>
-                ))}
+              {/* Ticket type */}
+              <div style={{
+                padding: "14px 16px", borderRadius: 10,
+                border: "2px solid #0B1D3A", background: "#F8FAFF",
+                marginBottom: 20
+              }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <p style={{ fontSize: 13, fontWeight: 600, color: "#0B1D3A" }}>General Admission</p>
+                  <p style={{ fontSize: 14, fontWeight: 700, color: "#0B1D3A" }}>
+                    {isFree ? "Free" : `$${event.price || 5}`}
+                  </p>
+                </div>
+                <p style={{ fontSize: 11, color: "#9CA3AF", marginTop: 4 }}>{spotsLeft} available</p>
               </div>
 
               {/* Quantity */}
-              <div className="mb-4">
-                <label className="text-sm font-medium text-gray-700 block mb-1">
-                  Quantity
-                </label>
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    className="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition"
-                  >
-                    -
-                  </button>
-                  <span className="text-sm font-medium w-4 text-center">{quantity}</span>
-                  <button
-                    onClick={() => setQuantity(Math.min(5, quantity + 1))}
-                    className="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition"
-                  >
-                    +
-                  </button>
+              <div style={{ marginBottom: 20 }}>
+                <p style={{ fontSize: 13, fontWeight: 500, color: "#0B1D3A", marginBottom: 10 }}>Quantity</p>
+                <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                  <button onClick={() => setQuantity(Math.max(1, quantity - 1))} style={{
+                    width: 36, height: 36, borderRadius: 8,
+                    border: "1.5px solid #E4E2DC", background: "white",
+                    fontSize: 18, cursor: "pointer", display: "flex",
+                    alignItems: "center", justifyContent: "center", color: "#0B1D3A"
+                  }}>-</button>
+                  <span style={{ fontSize: 16, fontWeight: 600, color: "#0B1D3A", minWidth: 20, textAlign: "center" }}>{quantity}</span>
+                  <button onClick={() => setQuantity(Math.min(5, quantity + 1))} style={{
+                    width: 36, height: 36, borderRadius: 8,
+                    border: "1.5px solid #E4E2DC", background: "white",
+                    fontSize: 18, cursor: "pointer", display: "flex",
+                    alignItems: "center", justifyContent: "center", color: "#0B1D3A"
+                  }}>+</button>
                 </div>
               </div>
 
               {/* Total */}
-              <div className="flex items-center justify-between py-3 border-t border-gray-100 mb-4">
-                <span className="text-sm text-gray-600">Total</span>
-                <span className="font-bold text-gray-900">
-                  {selectedTicket.price === 0
-                    ? "Free"
-                    : `$${selectedTicket.price * quantity}`}
+              <div style={{
+                display: "flex", justifyContent: "space-between",
+                padding: "14px 0", borderTop: "1px solid #E4E2DC",
+                borderBottom: "1px solid #E4E2DC", marginBottom: 20
+              }}>
+                <span style={{ fontSize: 14, color: "#6B6962" }}>Total</span>
+                <span style={{ fontSize: 16, fontWeight: 700, color: "#0B1D3A" }}>
+                  {isFree ? "Free" : `$${(event.price || 5) * quantity}`}
                 </span>
               </div>
 
-              {/* Purchase Button */}
-              <button
-                onClick={handlePurchase}
-                className="w-full bg-blue-600 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-blue-700 transition"
-              >
-                {mockEvent.isFree ? "Confirm RSVP" : "Purchase Ticket"}
+              {/* Button */}
+              <button onClick={handlePurchase} disabled={loading} style={{
+                width: "100%", padding: "14px",
+                background: loading ? "#8A9BC0" : "#0B1D3A",
+                color: "white", border: "none", borderRadius: 10,
+                fontSize: 14, fontWeight: 600, cursor: loading ? "not-allowed" : "pointer",
+                fontFamily: "'Inter', sans-serif", marginBottom: 12
+              }}>
+                {loading ? "Processing..." : isFree ? "Confirm RSVP" : "Purchase Ticket"}
               </button>
 
-              <p className="text-xs text-gray-400 text-center mt-3">
+              <p style={{ fontSize: 11, color: "#9CA3AF", textAlign: "center" }}>
                 QR code will be sent to your university email
               </p>
             </div>

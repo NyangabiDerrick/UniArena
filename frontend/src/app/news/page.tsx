@@ -1,22 +1,12 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import MainLayout from "@/components/layout/MainLayout"
 import { Search } from "lucide-react"
 import Link from "next/link"
 import { api } from "@/lib/api"
-import { useEffect } from "react"
 
-const filters = ["All","Clubs","Sports","University"]
-
-const mockArticles = [
-  { id:"1", title:"UniArena FC wins the National University Football Championship", excerpt:"After a thrilling final against City University, our football team clinched the national title with a 3-1 victory.", author:"Sports Reporter", club:"UniArena FC", category:"Sports", date:"May 28, 2026", isPinned:true, readTime:"3 min" },
-  { id:"2", title:"Photography Society wins Best University Club award", excerpt:"The Photography Society has been named the Best University Club at the National Student Union Awards for the second year running.", author:"Jane Leader", club:"Photography Society", category:"Clubs", date:"May 25, 2026", isPinned:true, readTime:"2 min" },
-  { id:"3", title:"University announces new student activity centre opening in September", excerpt:"The long-awaited student activity centre will open its doors in September 2026 featuring new sports facilities.", author:"University Communications", club:"University", category:"University", date:"May 22, 2026", isPinned:false, readTime:"4 min" },
-  { id:"4", title:"Debate Society prepares for national championship", excerpt:"After winning the regional qualifiers, the Debate Society is now preparing for the national championship next month.", author:"Debate Society", club:"Debate Society", category:"Clubs", date:"May 20, 2026", isPinned:false, readTime:"2 min" },
-  { id:"5", title:"Swimming team breaks three university records at regional meet", excerpt:"The UniArena Swim Team had an outstanding performance at the regional meet, breaking three long-standing records.", author:"Sports Reporter", club:"UniArena Swim Team", category:"Sports", date:"May 18, 2026", isPinned:false, readTime:"3 min" },
-  { id:"6", title:"African Culture Night ticket sales open — limited spots available", excerpt:"Tickets for the highly anticipated African Culture Night are now on sale. With only 300 spots available, book early.", author:"African Culture Society", club:"African Culture Society", category:"Clubs", date:"May 15, 2026", isPinned:false, readTime:"1 min" },
-]
+const filters = ["All", "Clubs", "Sports", "University"]
 
 const catColors: Record<string, { bg: string; text: string }> = {
   Sports: { bg: "#FFF7ED", text: "#C2410C" },
@@ -48,35 +38,122 @@ export default function NewsPage() {
   const filtered = articles.filter(a =>
     selected === "All" || a.category === selected
   )
-  const pinned = filtered.filter(a => a.isPinned)
-  const regular = filtered.filter(a => !a.isPinned)
 
   const pinned = filtered.filter(a => a.isPinned)
   const regular = filtered.filter(a => !a.isPinned)
+
+  const getSource = (a: any) => {
+    if (a.club?.name) return a.club.name
+    if (a.team?.name) return a.team.name
+    if (a.isUniversityWide) return "University"
+    return "UniArena"
+  }
+
+  const getCategory = (a: any) => {
+    if (a.team) return "Sports"
+    if (a.club) return "Clubs"
+    if (a.isUniversityWide) return "University"
+    return "General"
+  }
+
+  const renderCard = (a: any, highlighted = false) => {
+    const category = getCategory(a)
+    const source = getSource(a)
+    const c = catColors[category] || { bg: "#F1F5F9", text: "#475569" }
+
+    return (
+      <Link key={a.id} href={`/news/${a.id}`} style={{ textDecoration: "none" }}>
+        <div style={{
+          background: highlighted ? "#FFFBF0" : "white",
+          borderRadius: 14,
+          padding: "20px 22px",
+          border: highlighted ? "1.5px solid #E8D89A" : "1px solid #E4E2DC",
+          transition: "box-shadow 0.2s, transform 0.2s"
+        }}
+          onMouseEnter={e => {
+            const el = e.currentTarget as HTMLElement
+            el.style.boxShadow = "0 6px 20px rgba(11,29,58,0.08)"
+            el.style.transform = "translateY(-1px)"
+          }}
+          onMouseLeave={e => {
+            const el = e.currentTarget as HTMLElement
+            el.style.boxShadow = "none"
+            el.style.transform = "translateY(0)"
+          }}
+        >
+          <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+            <span style={{
+              fontSize: 11, padding: "3px 10px", borderRadius: 99,
+              fontWeight: 500, background: c.bg, color: c.text
+            }}>
+              {category}
+            </span>
+            <span style={{ fontSize: 11, color: "#9CA3AF" }}>{source}</span>
+          </div>
+
+          <h3 style={{
+            fontSize: 15, fontWeight: 600, color: "#0B1D3A", marginBottom: 8
+          }}>
+            {a.title}
+          </h3>
+
+          <p style={{
+            fontSize: 13, color: "#6B6962", lineHeight: 1.5,
+            marginBottom: 12,
+            overflow: "hidden",
+            display: "-webkit-box",
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: "vertical"
+          } as any}>
+            {a.content?.substring(0, 150)}...
+          </p>
+
+          <div style={{ display: "flex", gap: 16, fontSize: 11, color: "#9CA3AF" }}>
+            <span>{typeof a.author === "object" ? a.author?.name : a.author || "Unknown"}</span>
+            <span>{new Date(a.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+            <span>{Math.ceil((a.content?.length || 500) / 1000)} min read</span>
+          </div>
+        </div>
+      </Link>
+    )
+  }
 
   return (
     <MainLayout>
       <div style={{ maxWidth: 800, margin: "0 auto" }}>
 
-        {/* Header */}
         <div style={{ marginBottom: 24 }}>
-          <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: 28, fontWeight: 700, color: "#0B1D3A", marginBottom: 6 }}>
+          <h1 style={{
+            fontFamily: "'Playfair Display', serif",
+            fontSize: 28, fontWeight: 700, color: "#0B1D3A", marginBottom: 6
+          }}>
             News & Announcements
           </h1>
-          <p style={{ fontSize: 14, color: "#6B6962" }}>Stay up to date with everything happening at UniArena</p>
+          <p style={{ fontSize: 14, color: "#6B6962" }}>
+            Stay up to date with everything happening at UniArena
+          </p>
         </div>
 
-        {/* Search */}
         <div style={{ position: "relative", marginBottom: 16 }}>
-          <Search size={15} style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: "#9CA3AF" }} />
-          <input type="text" placeholder="Search news and announcements..." value={search} onChange={e => setSearch(e.target.value)} style={{
-            width: "100%", padding: "11px 14px 11px 40px", fontSize: 13, borderRadius: 10,
-            border: "1.5px solid #E4E2DC", background: "white", color: "#1A1916",
-            outline: "none", fontFamily: "'Inter', sans-serif"
+          <Search size={15} style={{
+            position: "absolute", left: 14, top: "50%",
+            transform: "translateY(-50%)", color: "#9CA3AF"
           }} />
+          <input
+            type="text"
+            placeholder="Search news and announcements..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            style={{
+              width: "100%", padding: "11px 14px 11px 40px",
+              fontSize: 13, borderRadius: 10,
+              border: "1.5px solid #E4E2DC",
+              background: "white", color: "#1A1916",
+              outline: "none", fontFamily: "'Inter', sans-serif"
+            }}
+          />
         </div>
 
-        {/* Filters */}
         <div style={{ display: "flex", gap: 8, marginBottom: 28 }}>
           {filters.map(f => (
             <button key={f} onClick={() => setSelected(f)} style={{
@@ -90,76 +167,36 @@ export default function NewsPage() {
           ))}
         </div>
 
-        {/* Pinned */}
-        {pinned.length > 0 && (
-          <div style={{ marginBottom: 28 }}>
-            <p style={{ fontSize: 11, fontWeight: 600, color: "#C9A84C", letterSpacing: "0.1em", marginBottom: 12 }}>📌 PINNED</p>
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              {pinned.map(a => {
-                const c = catColors[a.category] || { bg: "#F1F5F9", text: "#475569" }
-                return (
-                  <Link key={a.id} href={`/news/${a.id}`} style={{ textDecoration: "none" }}>
-                    <div style={{
-                      background: "#FFFBF0", borderRadius: 14, padding: "20px 22px",
-                      border: "1.5px solid #E8D89A",
-                      transition: "box-shadow 0.2s"
-                    }}
-                      onMouseEnter={e => (e.currentTarget as HTMLElement).style.boxShadow = "0 6px 20px rgba(11,29,58,0.08)"}
-                      onMouseLeave={e => (e.currentTarget as HTMLElement).style.boxShadow = "none"}
-                    >
-                      <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
-                        <span style={{ fontSize: 11, padding: "3px 10px", borderRadius: 99, fontWeight: 500, background: c.bg, color: c.text }}>{a.category}</span>
-                        <span style={{ fontSize: 11, color: "#9CA3AF" }}>{a.club}</span>
-                      </div>
-                      <h3 style={{ fontSize: 15, fontWeight: 600, color: "#0B1D3A", marginBottom: 8 }}>{a.title}</h3>
-                      <p style={{ fontSize: 13, color: "#6B6962", lineHeight: 1.5, marginBottom: 12 }}>{a.excerpt}</p>
-                      <div style={{ display: "flex", gap: 16, fontSize: 11, color: "#9CA3AF" }}>
-                        <span>{a.author}</span><span>{a.date}</span><span>{a.readTime} read</span>
-                      </div>
-                    </div>
-                  </Link>
-                )
-              })}
-            </div>
+        {loading ? (
+          <div style={{ textAlign: "center", padding: "60px 0" }}>
+            <p style={{ fontSize: 14, color: "#9CA3AF" }}>Loading articles...</p>
           </div>
-        )}
-
-        {/* Regular */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          {regular.map(a => {
-            const c = catColors[a.category] || { bg: "#F1F5F9", text: "#475569" }
-            return (
-              <Link key={a.id} href={`/news/${a.id}`} style={{ textDecoration: "none" }}>
-                <div style={{
-                  background: "white", borderRadius: 14, padding: "20px 22px",
-                  border: "1px solid #E4E2DC",
-                  transition: "box-shadow 0.2s, transform 0.2s"
-                }}
-                  onMouseEnter={e => {
-                    const el = e.currentTarget as HTMLElement
-                    el.style.boxShadow = "0 6px 20px rgba(11,29,58,0.08)"
-                    el.style.transform = "translateY(-1px)"
-                  }}
-                  onMouseLeave={e => {
-                    const el = e.currentTarget as HTMLElement
-                    el.style.boxShadow = "none"
-                    el.style.transform = "translateY(0)"
-                  }}
-                >
-                  <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
-                    <span style={{ fontSize: 11, padding: "3px 10px", borderRadius: 99, fontWeight: 500, background: c.bg, color: c.text }}>{a.category}</span>
-                    <span style={{ fontSize: 11, color: "#9CA3AF" }}>{a.club}</span>
-                  </div>
-                  <h3 style={{ fontSize: 15, fontWeight: 600, color: "#0B1D3A", marginBottom: 8 }}>{a.title}</h3>
-                  <p style={{ fontSize: 13, color: "#6B6962", lineHeight: 1.5, marginBottom: 12 }}>{a.excerpt}</p>
-                  <div style={{ display: "flex", gap: 16, fontSize: 11, color: "#9CA3AF" }}>
-                    <span>{a.author}</span><span>{a.date}</span><span>{a.readTime} read</span>
-                  </div>
+        ) : filtered.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "60px 0" }}>
+            <p style={{ fontSize: 32, marginBottom: 12 }}>📰</p>
+            <p style={{ fontSize: 14, color: "#6B6962" }}>No articles found</p>
+          </div>
+        ) : (
+          <>
+            {pinned.length > 0 && (
+              <div style={{ marginBottom: 28 }}>
+                <p style={{
+                  fontSize: 11, fontWeight: 600, color: "#C9A84C",
+                  letterSpacing: "0.1em", marginBottom: 12
+                }}>📌 PINNED</p>
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  {pinned.map(a => renderCard(a, true))}
                 </div>
-              </Link>
-            )
-          })}
-        </div>
+              </div>
+            )}
+
+            {regular.length > 0 && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                {regular.map(a => renderCard(a, false))}
+              </div>
+            )}
+          </>
+        )}
 
       </div>
     </MainLayout>
