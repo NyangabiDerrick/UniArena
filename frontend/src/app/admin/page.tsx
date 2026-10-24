@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Users, Building2, Calendar, AlertCircle, CheckCircle, XCircle, Clock } from "lucide-react"
 import { api } from "@/lib/api"
+import { useSession } from "next-auth/react"
 
 const activity = [
   { action:"Club request submitted", detail:"Photography Society by John Student", time:"2 minutes ago", type:"pending" },
@@ -30,11 +31,14 @@ export default function AdminPage() {
     totalUsers: 0, totalClubs: 0, totalEvents: 0, pendingApprovals: 0
   })
 
+    const { status } = useSession()
+
   useEffect(() => {
+    if (status !== "authenticated") return
     api.getAdminAnalytics()
       .then(res => setAnalytics(res.data))
-      .catch(err => console.error('Failed to fetch analytics:', err))
-  }, [])
+      .catch(err => console.error("Failed to fetch analytics:", err))
+  }, [status])
 
   const stats = [
     { label:"Total Users", value: String(analytics.totalUsers), sub:"Registered users", icon:Users, bg:"#EFF6FF", color:"#1D4ED8" },
