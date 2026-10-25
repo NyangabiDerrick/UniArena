@@ -1,315 +1,291 @@
 "use client"
 
-import { useState } from "react"
-import MainLayout from "@/components/layout/MainLayout"
-import {
-  ArrowLeft,
-  Calendar,
-  MapPin,
-  Users,
-  Trophy
-} from "lucide-react"
+import { useState, useEffect, use } from "react"
 import Link from "next/link"
-
-const mockTeam = {
-  id: "1",
-  name: "UniArena FC",
-  sport: "Football",
-  season: "2025/26",
-  description: "The university flagship football team competing in the national university league. Founded in 1998, we have won the national championship 3 times.",
-  memberCount: 25,
-  wins: 8,
-  losses: 2,
-  draws: 1,
-  squad: [
-    { id: "1", name: "James Keeper", position: "Goalkeeper", isAvailable: true },
-    { id: "2", name: "Mark Right", position: "Defender", isAvailable: true },
-    { id: "3", name: "Luke Centre", position: "Defender", isAvailable: false },
-    { id: "4", name: "Paul Left", position: "Defender", isAvailable: true },
-    { id: "5", name: "Tom Mid", position: "Midfielder", isAvailable: true },
-    { id: "6", name: "Sam Box", position: "Midfielder", isAvailable: true },
-    { id: "7", name: "Chris Wide", position: "Midfielder", isAvailable: true },
-    { id: "8", name: "Alex Strike", position: "Forward", isAvailable: false },
-    { id: "9", name: "Jordan Goal", position: "Forward", isAvailable: true }
-  ],
-  fixtures: [
-    {
-      id: "1",
-      opposition: "City University",
-      venue: "Main Stadium",
-      isHome: true,
-      scheduledAt: "June 7, 2026",
-      status: "UPCOMING"
-    },
-    {
-      id: "2",
-      opposition: "Tech University",
-      venue: "Tech Campus",
-      isHome: false,
-      scheduledAt: "June 14, 2026",
-      status: "UPCOMING"
-    }
-  ],
-  results: [
-    {
-      id: "3",
-      opposition: "North University",
-      isHome: true,
-      homeScore: 3,
-      awayScore: 1,
-      date: "May 24, 2026"
-    },
-    {
-      id: "4",
-      opposition: "South College",
-      isHome: false,
-      homeScore: 0,
-      awayScore: 2,
-      date: "May 17, 2026"
-    },
-    {
-      id: "5",
-      opposition: "East University",
-      isHome: true,
-      homeScore: 2,
-      awayScore: 2,
-      date: "May 10, 2026"
-    }
-  ],
-  training: [
-    { day: "Tuesday", time: "6:00 PM — 8:00 PM", venue: "Main Pitch" },
-    { day: "Thursday", time: "6:00 PM — 8:00 PM", venue: "Main Pitch" },
-    { day: "Saturday", time: "10:00 AM — 12:00 PM", venue: "Training Ground" }
-  ]
-}
+import MainLayout from "@/components/layout/MainLayout"
+import { ArrowLeft, Calendar, MapPin, Users, Trophy } from "lucide-react"
+import { api } from "@/lib/api"
 
 const tabs = ["Fixtures", "Results", "Squad", "Training"]
 
-export default function SportTeamPage() {
+const sportEmoji: Record<string, string> = {
+  Football: "⚽", Basketball: "🏀", Swimming: "🏊", Athletics: "🏃",
+  Rugby: "🏉", Tennis: "🎾", Cricket: "🏏", Volleyball: "🏐"
+}
+
+const card = {
+  background: "white", borderRadius: 16, padding: "28px 32px", border: "1px solid #E4E2DC"
+} as const
+
+const fmtDate = (d: string) =>
+  new Date(d).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "long", year: "numeric" })
+
+const fmtTime = (d: string) =>
+  new Date(d).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
+
+export default function SportTeamPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params)
+  const [team, setTeam] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState("Fixtures")
 
-  const getResultLabel = (result: typeof mockTeam.results[0]) => {
-    const scored = result.isHome ? result.homeScore : result.awayScore
-    const conceded = result.isHome ? result.awayScore : result.homeScore
-    if (scored > conceded) return { label: "W", color: "text-green-600 bg-green-50" }
-    if (scored < conceded) return { label: "L", color: "text-red-600 bg-red-50" }
-    return { label: "D", color: "text-gray-600 bg-gray-50" }
+  useEffect(() => {
+    api.getTeam(id)
+      .then(res => setTeam(res.data))
+      .catch(err => console.error("Failed to load team:", err))
+      .finally(() => setLoading(false))
+  }, [id])
+
+  if (loading) {
+    return (
+      <MainLayout>
+        <p style={{ textAlign: "center", padding: "80px 0", fontSize: 14, color: "#9CA3AF" }}>Loading team...</p>
+      </MainLayout>
+    )
   }
+
+  if (!team) {
+    return (
+      <MainLayout>
+        <div style={{ textAlign: "center", padding: "80px 0" }}>
+          <p style={{ fontSize: 14, color: "#6B6962", marginBottom: 12 }}>Team not found</p>
+          <Link href="/sports" style={{ fontSize: 13, color: "#0B1D3A", textDecoration: "underline" }}>Back to Sports</Link>
+        </div>
+      </MainLayout>
+    )
+  }
+
+  const fixtures: any[] = team.fixtures || []
+  const upcoming = fixtures.filter(f => f.status === "UPCOMING" || f.status === "LIVE")
+  const completed = fixtures
+    .filter(f => f.status === "COMPLETED")
+    .sort((a, b) => new Date(b.scheduledAt).getTime() - new Date(a.scheduledAt).getTime())
+  const squad: any[] = team.squadMembers || []
+
+  const outcome = (f: any) => {
+    const scored = f.isHome ? f.homeScore : f.awayScore
+    const conceded = f.isHome ? f.awayScore : f.homeScore
+    if (scored > conceded) return { label: "W", bg: "#F0FDF4", color: "#15803D" }
+    if (scored < conceded) return { label: "L", bg: "#FEF2F2", color: "#DC2626" }
+    return { label: "D", bg: "#F3F4F6", color: "#6B7280" }
+  }
+
+  const record = completed.reduce(
+    (acc, f) => {
+      const o = outcome(f).label
+      if (o === "W") acc.wins++
+      else if (o === "L") acc.losses++
+      else acc.draws++
+      return acc
+    },
+    { wins: 0, losses: 0, draws: 0 }
+  )
+
+  const homeBadge = (isHome: boolean) => (
+    <span style={{
+      fontSize: 11, padding: "3px 10px", borderRadius: 99, fontWeight: 500,
+      background: isHome ? "#F0FDF4" : "#FFF7ED", color: isHome ? "#15803D" : "#C2410C"
+    }}>{isHome ? "Home" : "Away"}</span>
+  )
+
+  const empty = (icon: React.ReactNode, text: string) => (
+    <div style={{ textAlign: "center", padding: "48px 0" }}>
+      <div style={{ marginBottom: 12 }}>{icon}</div>
+      <p style={{ fontSize: 14, color: "#6B6962" }}>{text}</p>
+    </div>
+  )
 
   return (
     <MainLayout>
-      <div className="max-w-5xl mx-auto">
+      <div style={{ maxWidth: 960, margin: "0 auto" }}>
 
-        {/* Back */}
-        <Link
-          href="/sports"
-          className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900 mb-4 transition"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back to Sports
+        <Link href="/sports" style={{
+          display: "inline-flex", alignItems: "center", gap: 6,
+          fontSize: 13, color: "#6B6962", textDecoration: "none", marginBottom: 20
+        }}>
+          <ArrowLeft size={15} /> Back to Sports
         </Link>
 
         {/* Banner */}
-        <div className="bg-gradient-to-r from-orange-400 to-orange-600 rounded-xl h-36 mb-4" />
+        <div style={{ background: "linear-gradient(135deg, #F97316, #EA580C)", borderRadius: "16px 16px 0 0", height: 170 }} />
 
-        {/* Team Header */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 mb-4">
-          <div className="flex items-start gap-4">
-            <div className="w-16 h-16 bg-orange-50 rounded-xl flex items-center justify-center flex-shrink-0 -mt-10 border-4 border-white shadow-sm text-3xl">
-              ⚽
-            </div>
-            <div className="flex-1">
-              <h1 className="text-xl font-bold text-gray-900">{mockTeam.name}</h1>
-              <div className="flex items-center gap-3 mt-1 text-sm text-gray-500 flex-wrap">
-                <span className="bg-orange-50 text-orange-600 px-2 py-0.5 rounded-full text-xs">
-                  {mockTeam.sport}
+        {/* Team header */}
+        <div style={{
+          background: "white", border: "1px solid #E4E2DC", borderTop: "none",
+          borderRadius: "0 0 16px 16px", padding: "0 32px 32px", marginBottom: 28
+        }}>
+          <div style={{ display: "flex", alignItems: "flex-end", gap: 20 }}>
+            <div style={{
+              width: 80, height: 80, borderRadius: 18, background: "#FFF7ED",
+              border: "4px solid white", marginTop: -40, flexShrink: 0,
+              display: "flex", alignItems: "center", justifyContent: "center", fontSize: 38,
+              boxShadow: "0 4px 12px rgba(11,29,58,0.12)"
+            }}>{sportEmoji[team.sport] || "🏆"}</div>
+            <div style={{ paddingBottom: 4 }}>
+              <h1 style={{
+                fontFamily: "'Playfair Display', serif", fontSize: 26, fontWeight: 700,
+                color: "#0B1D3A", marginBottom: 8
+              }}>{team.name}</h1>
+              <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 14, fontSize: 13, color: "#9CA3AF" }}>
+                <span style={{ fontSize: 11, padding: "3px 10px", borderRadius: 99, background: "#FFF7ED", color: "#C2410C", fontWeight: 500 }}>
+                  {team.sport}
                 </span>
-                <span>Season {mockTeam.season}</span>
-                <div className="flex items-center gap-1">
-                  <Users className="w-3.5 h-3.5" />
-                  {mockTeam.memberCount} players
-                </div>
+                {team.season && <span>Season {team.season}</span>}
+                <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                  <Users size={13} /> {team._count?.squadMembers ?? squad.length} players
+                </span>
               </div>
-              <p className="text-sm text-gray-500 mt-2">{mockTeam.description}</p>
             </div>
           </div>
 
-          {/* Season Record */}
-          <div className="grid grid-cols-3 gap-4 mt-4 pt-4 border-t border-gray-100">
-            <div className="text-center">
-              <p className="text-2xl font-bold text-green-600">{mockTeam.wins}</p>
-              <p className="text-xs text-gray-500">Wins</p>
-            </div>
-            <div className="text-center">
-              <p className="text-2xl font-bold text-red-600">{mockTeam.losses}</p>
-              <p className="text-xs text-gray-500">Losses</p>
-            </div>
-            <div className="text-center">
-              <p className="text-2xl font-bold text-gray-600">{mockTeam.draws}</p>
-              <p className="text-xs text-gray-500">Draws</p>
-            </div>
+          {team.description && (
+            <p style={{ fontSize: 14, color: "#374151", lineHeight: 1.7, marginTop: 24 }}>{team.description}</p>
+          )}
+
+          {/* Record */}
+          <div style={{
+            display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16,
+            marginTop: 28, paddingTop: 24, borderTop: "1px solid #F3F4F6"
+          }}>
+            {[
+              { label: "Wins", value: record.wins, color: "#15803D" },
+              { label: "Losses", value: record.losses, color: "#DC2626" },
+              { label: "Draws", value: record.draws, color: "#6B7280" }
+            ].map(s => (
+              <div key={s.label} style={{ textAlign: "center" }}>
+                <p style={{ fontFamily: "'Playfair Display', serif", fontSize: 32, fontWeight: 700, color: s.color, lineHeight: 1 }}>{s.value}</p>
+                <p style={{ fontSize: 12, color: "#9CA3AF", marginTop: 6 }}>{s.label}</p>
+              </div>
+            ))}
           </div>
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 bg-gray-100 p-1 rounded-lg mb-4 w-fit">
-          {tabs.map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`px-4 py-2 text-sm font-medium rounded-md transition ${
-                activeTab === tab
-                  ? "bg-white text-gray-900 shadow-sm"
-                  : "text-gray-500 hover:text-gray-900"
-              }`}
-            >
-              {tab}
-            </button>
+        <div style={{ display: "flex", gap: 4, background: "#F3F4F6", padding: 4, borderRadius: 10, width: "fit-content", marginBottom: 24 }}>
+          {tabs.map(tab => (
+            <button key={tab} onClick={() => setActiveTab(tab)} style={{
+              padding: "9px 22px", borderRadius: 8, fontSize: 13, fontWeight: 500, border: "none", cursor: "pointer",
+              background: activeTab === tab ? "white" : "transparent",
+              color: activeTab === tab ? "#0B1D3A" : "#6B6962",
+              boxShadow: activeTab === tab ? "0 1px 4px rgba(0,0,0,0.08)" : "none",
+              fontFamily: "'Inter', sans-serif"
+            }}>{tab}</button>
           ))}
         </div>
 
-        {/* Tab Content */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+        {/* Tab content */}
+        <div style={card}>
 
-          {/* Fixtures */}
           {activeTab === "Fixtures" && (
             <div>
-              <h2 className="font-semibold text-gray-900 mb-3">Upcoming Fixtures</h2>
-              {mockTeam.fixtures.length === 0 ? (
-                <p className="text-sm text-gray-500">No upcoming fixtures scheduled.</p>
-              ) : (
-                <div className="space-y-3">
-                  {mockTeam.fixtures.map((fixture) => (
-                    <div
-                      key={fixture.id}
-                      className="flex items-center gap-4 p-4 rounded-lg border border-gray-100 hover:bg-gray-50 transition"
-                    >
-                      <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <Calendar className="w-5 h-5 text-blue-600" />
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <p className="font-medium text-gray-900">
-                            {fixture.isHome ? "vs" : "@"} {fixture.opposition}
-                          </p>
-                          <span className={`text-xs px-2 py-0.5 rounded-full ${
-                            fixture.isHome
-                              ? "bg-green-50 text-green-600"
-                              : "bg-orange-50 text-orange-600"
-                          }`}>
-                            {fixture.isHome ? "Home" : "Away"}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-3 text-xs text-gray-500 mt-1">
-                          <span>{fixture.scheduledAt}</span>
-                          <div className="flex items-center gap-1">
-                            <MapPin className="w-3 h-3" />
-                            {fixture.venue}
+              <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, color: "#0B1D3A", marginBottom: 20 }}>Upcoming Fixtures</h2>
+              {upcoming.length === 0
+                ? empty(<Calendar size={32} color="#E4E2DC" style={{ margin: "0 auto" }} />, "No upcoming fixtures scheduled")
+                : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                    {upcoming.map(f => (
+                      <div key={f.id} style={{
+                        display: "flex", alignItems: "center", gap: 18,
+                        padding: "18px 22px", borderRadius: 12, border: "1px solid #E4E2DC"
+                      }}>
+                        <div style={{
+                          width: 46, height: 46, borderRadius: 11, background: "#EFF6FF", flexShrink: 0,
+                          display: "flex", alignItems: "center", justifyContent: "center"
+                        }}><Calendar size={20} color="#1D4ED8" /></div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
+                            <p style={{ fontSize: 15, fontWeight: 600, color: "#0B1D3A" }}>
+                              {f.isHome ? "vs" : "@"} {f.opposition}
+                            </p>
+                            {homeBadge(f.isHome)}
+                          </div>
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: 18, fontSize: 12, color: "#9CA3AF" }}>
+                            <span>{fmtDate(f.scheduledAt)} · {fmtTime(f.scheduledAt)}</span>
+                            <span style={{ display: "flex", alignItems: "center", gap: 4 }}><MapPin size={12} /> {f.venue}</span>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+                    ))}
+                  </div>
+                )}
             </div>
           )}
 
-          {/* Results */}
           {activeTab === "Results" && (
             <div>
-              <h2 className="font-semibold text-gray-900 mb-3">Recent Results</h2>
-              <div className="space-y-3">
-                {mockTeam.results.map((result) => {
-                  const { label, color } = getResultLabel(result)
-                  return (
-                    <div
-                      key={result.id}
-                      className="flex items-center gap-4 p-4 rounded-lg border border-gray-100"
-                    >
-                      <span className={`text-xs font-bold px-2 py-1 rounded-full ${color}`}>
-                        {label}
-                      </span>
-                      <div className="flex-1">
-                        <p className="font-medium text-gray-900 text-sm">
-                          {result.isHome ? "UniArena FC" : result.opposition}
-                          {" "}{result.homeScore} — {result.awayScore}{" "}
-                          {result.isHome ? result.opposition : "UniArena FC"}
-                        </p>
-                        <p className="text-xs text-gray-500 mt-0.5">{result.date}</p>
-                      </div>
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${
-                        result.isHome
-                          ? "bg-green-50 text-green-600"
-                          : "bg-orange-50 text-orange-600"
-                      }`}>
-                        {result.isHome ? "Home" : "Away"}
-                      </span>
-                    </div>
-                  )
-                })}
-              </div>
+              <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, color: "#0B1D3A", marginBottom: 20 }}>Recent Results</h2>
+              {completed.length === 0
+                ? empty(<Trophy size={32} color="#E4E2DC" style={{ margin: "0 auto" }} />, "No results yet")
+                : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                    {completed.map(f => {
+                      const o = outcome(f)
+                      const left = f.isHome ? team.name : f.opposition
+                      const right = f.isHome ? f.opposition : team.name
+                      return (
+                        <div key={f.id} style={{
+                          display: "flex", alignItems: "center", gap: 18,
+                          padding: "18px 22px", borderRadius: 12, border: "1px solid #E4E2DC"
+                        }}>
+                          <span style={{
+                            width: 36, height: 36, borderRadius: 9, flexShrink: 0, fontSize: 13, fontWeight: 700,
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            background: o.bg, color: o.color
+                          }}>{o.label}</span>
+                          <div style={{ flex: 1 }}>
+                            <p style={{ fontSize: 15, fontWeight: 600, color: "#0B1D3A", marginBottom: 4 }}>
+                              {left} {f.homeScore} – {f.awayScore} {right}
+                            </p>
+                            <p style={{ fontSize: 12, color: "#9CA3AF" }}>{fmtDate(f.scheduledAt)} · {f.venue}</p>
+                          </div>
+                          {homeBadge(f.isHome)}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
             </div>
           )}
 
-          {/* Squad */}
           {activeTab === "Squad" && (
             <div>
-              <h2 className="font-semibold text-gray-900 mb-3">Squad</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {mockTeam.squad.map((player) => (
-                  <div
-                    key={player.id}
-                    className="flex items-center gap-3 p-3 rounded-lg border border-gray-100"
-                  >
-                    <div className="w-9 h-9 bg-orange-50 rounded-full flex items-center justify-center text-orange-600 font-semibold text-sm flex-shrink-0">
-                      {player.name.charAt(0)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate">
-                        {player.name}
-                      </p>
-                      <p className="text-xs text-gray-500">{player.position}</p>
-                    </div>
-                    <span className={`text-xs px-2 py-0.5 rounded-full flex-shrink-0 ${
-                      player.isAvailable
-                        ? "bg-green-50 text-green-600"
-                        : "bg-red-50 text-red-600"
-                    }`}>
-                      {player.isAvailable ? "Available" : "Unavailable"}
-                    </span>
+              <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, color: "#0B1D3A", marginBottom: 20 }}>Squad</h2>
+              {squad.length === 0
+                ? empty(<Users size={32} color="#E4E2DC" style={{ margin: "0 auto" }} />, "No players added to the squad yet")
+                : (
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+                    {squad.map(p => (
+                      <div key={p.id} style={{
+                        display: "flex", alignItems: "center", gap: 14,
+                        padding: "14px 18px", borderRadius: 12, border: "1px solid #E4E2DC"
+                      }}>
+                        <div style={{
+                          width: 42, height: 42, borderRadius: 10, background: "#FFF7ED", color: "#C2410C", flexShrink: 0,
+                          display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 15
+                        }}>{p.user?.name?.charAt(0)}</div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ fontSize: 14, fontWeight: 500, color: "#0B1D3A" }}>{p.user?.name}</p>
+                          <p style={{ fontSize: 12, color: "#9CA3AF", marginTop: 2 }}>{p.position || "Player"}</p>
+                        </div>
+                        <span style={{
+                          fontSize: 11, padding: "3px 10px", borderRadius: 99, fontWeight: 500,
+                          background: p.isAvailable ? "#F0FDF4" : "#FEF2F2",
+                          color: p.isAvailable ? "#15803D" : "#DC2626"
+                        }}>{p.isAvailable ? "Available" : "Unavailable"}</span>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                )}
             </div>
           )}
 
-          {/* Training */}
           {activeTab === "Training" && (
             <div>
-              <h2 className="font-semibold text-gray-900 mb-3">Training Schedule</h2>
-              <div className="space-y-3">
-                {mockTeam.training.map((session, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center gap-4 p-4 rounded-lg border border-gray-100"
-                  >
-                    <div className="w-10 h-10 bg-orange-50 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <Trophy className="w-5 h-5 text-orange-600" />
-                    </div>
-                    <div>
-                      <p className="font-medium text-gray-900 text-sm">{session.day}</p>
-                      <div className="flex items-center gap-3 text-xs text-gray-500 mt-0.5">
-                        <span>{session.time}</span>
-                        <div className="flex items-center gap-1">
-                          <MapPin className="w-3 h-3" />
-                          {session.venue}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, color: "#0B1D3A", marginBottom: 20 }}>Training Schedule</h2>
+              {empty(
+                <Calendar size={32} color="#E4E2DC" style={{ margin: "0 auto" }} />,
+                "Training times haven't been published yet. The team leader will be able to add them soon."
+              )}
             </div>
           )}
 
