@@ -1,23 +1,27 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
+import { getSession } from "next-auth/react"
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
 
 async function request<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<{ success: boolean; data: T; message: string }> {
+  const session = await getSession()
 
-  // Get token from NextAuth session cookie
   const res = await fetch(`${API_URL}${endpoint}`, {
+    ...options,
     headers: {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
+      ...(session?.accessToken
+        ? { Authorization: `Bearer ${session.accessToken}` }
+        : {}),
       ...options.headers
-    },
-    credentials: 'include',
-    ...options
+    }
   })
 
   if (!res.ok) {
-    const error = await res.json().catch(() => ({ message: 'Request failed' }))
-    throw new Error(error.message || 'Request failed')
+    const error = await res.json().catch(() => ({ message: "Request failed" }))
+    throw new Error(error.message || "Request failed")
   }
 
   return res.json()

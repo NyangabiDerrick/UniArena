@@ -6,7 +6,7 @@ import cookieParser from 'cookie-parser'
 import dotenv from 'dotenv'
 import { errorHandler, notFound } from './middleware/errorHandler'
 import { generalLimiter } from './middleware/rateLimiter'
-import userRoutes from './routes/users'
+import authRoutes from './routes/auth'
 import userRoutes from './routes/users'
 import clubRoutes from './routes/clubs'
 import sportRoutes from './routes/sports'
@@ -19,20 +19,31 @@ dotenv.config()
 const app = express()
 const PORT = process.env.PORT || 5000
 
-// Security middleware
+// Security headers
 app.use(helmet())
+
+// Only our own frontend may call this API from a browser
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-  credentials: true
+  origin: (origin, callback) => {
+    const allowed = [
+      'http://localhost:3000',
+      process.env.FRONTEND_URL
+    ].filter(Boolean)
+
+    // No origin = server-to-server call (NextAuth) or curl
+    if (!origin || allowed.includes(origin)) {
+      callback(null, true)
+    } else {
+      callback(new Error('Not allowed by CORS'))
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }))
 
-// Rate limiting
 app.use(generalLimiter)
-
-// Logging
 app.use(morgan('dev'))
-
-// Body parsing
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 app.use(cookieParser())
@@ -47,7 +58,8 @@ app.get('/health', (req, res) => {
   })
 })
 
-// Routes
+// All route groups. Each line makes one group of URLs available.
+app.use('/api/auth', authRoutes)
 app.use('/api/users', userRoutes)
 app.use('/api/clubs', clubRoutes)
 app.use('/api/sports', sportRoutes)
@@ -55,31 +67,10 @@ app.use('/api/events', eventRoutes)
 app.use('/api/articles', articleRoutes)
 app.use('/api/admin', adminRoutes)
 
-// Test protected route
-app.get('/api/test/student', 
-  (req, res, next) => {
-    const { authenticate } = require('./middleware/auth')
-    authenticate(req, res, next)
-  },
-  (req, res, next) => {
-    const { requireRole, ROLES } = require('./middleware/auth')
-    requireRole(ROLES.STUDENT, ROLES.ADMIN)(req, res, next)
-  },
-  (req, res) => {
-    res.json({ 
-      success: true, 
-      message: 'Student route works',
-    })
-  }
-)
-
-// 404 handler
+// These two MUST stay last. Anything registered after them is never reached.
 app.use(notFound)
-
-// Error handler
 app.use(errorHandler)
 
-// Start server
 app.listen(PORT, () => {
   console.log(`🚀 UniArena backend running on http://localhost:${PORT}`)
   console.log(`🌍 Environment: ${process.env.NODE_ENV}`)

@@ -17,6 +17,10 @@ model User {
   role        Role     @default(STUDENT)
   avatarUrl   String?
   isActive    Boolean  @default(true)
+  emailVerified    Boolean   @default(false)
+  passwordHash     String?
+  resetToken       String?
+  resetTokenExpiry DateTime?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

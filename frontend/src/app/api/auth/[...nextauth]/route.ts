@@ -1,82 +1,34 @@
 import NextAuth from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
+import jwt from "jsonwebtoken"
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
 
 const handler = NextAuth({
   providers: [
     CredentialsProvider({
-      name: "University SSO",
+      name: "University account",
       credentials: {
         email: { label: "University Email", type: "email" },
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
-        const mockUsers = [
-          {
-            id: "1",
-            email: "student@university.ac",
-            name: "John Student",
-            role: "STUDENT",
-            studentId: "UA-2024-001",
-            faculty: "Computer Science"
-          },
-          {
-            id: "2",
-            email: "leader@university.ac",
-            name: "Jane Leader",
-            role: "CLUB_LEADER",
-            studentId: "UA-2024-002",
-            faculty: "Business"
-          },
-          {
-            id: "3",
-            email: "captain@university.ac",
-            name: "Mike Captain",
-            role: "SPORTS_CAPTAIN",
-            studentId: "UA-2024-003",
-            faculty: "Sports Science"
-          },
-          {
-            id: "4",
-            email: "admin@university.ac",
-            name: "Sarah Admin",
-            role: "ADMIN",
-            studentId: "UA-2024-004",
-            faculty: "Administration"
-          },
-          {
-            id: "5",
-            email: "lecturer@university.ac",
-            name: "Dr. Smith",
-            role: "LECTURER",
-            studentId: "UA-STAFF-001",
-            faculty: "Computer Science"
-          }
-        ]
+        if (!credentials?.email || !credentials?.password) return null
 
-        const user = mockUsers.find(u => u.email === credentials?.email)
-
-        if (user && credentials?.password === "password123") {
-          // Sync user to database
-          try {
-            await fetch(`http://localhost:5000/api/users/sync`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                email: user.email,
-                name: user.name,
-                studentId: user.studentId,
-                faculty: user.faculty,
-                role: user.role
-              })
-            })
-          } catch (error) {
-            console.error('Error syncing user to database:', error)
-          }
-
-          return user
+        let res: Response
+        try {
+          res = await fetch(`${API_URL}/api/auth/login`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: credentials.email, password: credentials.password })
+          })
+        } catch {
+          throw new Error("Cannot reach the server. Please try again.")
         }
 
-        return null
+        const data = await res.json().catch(() => ({}))
+        if (!res.ok) throw new Error(data.message || "Invalid email or password")
+        return data.data
       }
     })
   ],
@@ -95,17 +47,16 @@ const handler = NextAuth({
         session.user.studentId = token.studentId as string
         session.user.faculty = token.faculty as string
       }
+      session.accessToken = jwt.sign(
+        { email: token.email, role: token.role, studentId: token.studentId },
+        process.env.NEXTAUTH_SECRET!,
+        { expiresIn: "1h" }
+      )
       return session
     }
   },
-  pages: {
-    signIn: "/auth/login",
-    error: "/auth/error"
-  },
-  session: {
-    strategy: "jwt",
-    maxAge: 24 * 60 * 60
-  },
+  pages: { signIn: "/auth/login" },
+  session: { strategy: "jwt", maxAge: 24 * 60 * 60 },
   secret: process.env.NEXTAUTH_SECRET
 })
 
