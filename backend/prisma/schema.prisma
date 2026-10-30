@@ -17,6 +17,10 @@ model User {
   role        Role     @default(STUDENT)
   avatarUrl   String?
   isActive    Boolean  @default(true)
+  managedClubId String?
+  managedClub   Club?       @relation("ClubLeader", fields: [managedClubId], references: [id])
+  managedTeamId String?
+  managedTeam   SportsTeam? @relation("TeamLeader", fields: [managedTeamId], references: [id])
   emailVerified    Boolean   @default(false)
   passwordHash     String?
   resetToken       String?
@@ -52,6 +56,8 @@ model Club {
   foundedAt   DateTime?
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
+  type    ClubType @default(CLUB)
+  leaders User[]   @relation("ClubLeader")
 
   advisorId String?
   advisor   User?   @relation("ClubAdvisor", fields: [advisorId], references: [id])
@@ -111,6 +117,7 @@ model SportsTeam {
   season      String?
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
+  leaders User[] @relation("TeamLeader")
 
   squadMembers SquadMember[]
   fixtures     Fixture[]
@@ -344,4 +351,9 @@ enum ArticleStatus {
 enum MediaType {
   IMAGE
   VIDEO
+}
+
+enum ClubType {
+  CLUB
+  SOCIETY
 }
