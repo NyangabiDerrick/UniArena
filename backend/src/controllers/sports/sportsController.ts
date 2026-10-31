@@ -85,8 +85,13 @@ export const updateFixture = async (req: AuthRequest, res: Response) => {
   try {
     const { homeScore, awayScore, status, notes } = req.body
 
+    const existing = await prisma.fixture.findFirst({
+      where: { id: req.params.fixtureId, teamId: req.params.id }
+    })
+    if (!existing) return sendError(res, 'Fixture not found for this team', 404)
+
     const fixture = await prisma.fixture.update({
-      where: { id: req.params.fixtureId },
+      where: { id: existing.id },
       data: { homeScore, awayScore, status, notes }
     })
 

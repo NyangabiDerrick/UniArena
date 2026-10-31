@@ -59,10 +59,19 @@ export const getEventById = async (req: Request, res: Response) => {
 // POST /api/events
 export const createEvent = async (req: AuthRequest, res: Response) => {
   try {
-    const { title, description, venue, startsAt, endsAt, capacity, isFree, clubId, teamId } = req.body
+    const u = req.user!
+    const { title, description, venue, startsAt, endsAt, capacity, isFree } = req.body
 
-    const user = await prisma.user.findUnique({ where: { email: req.user?.email } })
-    if (!user) return sendError(res, 'User not found', 404)
+    let clubId: string | undefined
+    let teamId: string | undefined
+    if (u.role === 'CLUB_LEADER') {
+      clubId = u.managedClubId ?? undefined
+      teamId = u.managedTeamId ?? undefined
+      if (!clubId && !teamId) return sendError(res, 'You are not assigned to a club or team yet', 403)
+    } else {
+      clubId = req.body.clubId || undefined
+      teamId = req.body.teamId || undefined
+    }
 
     const event = await prisma.event.create({
       data: {
@@ -71,14 +80,14 @@ export const createEvent = async (req: AuthRequest, res: Response) => {
         endsAt: new Date(endsAt),
         capacity: parseInt(capacity),
         isFree: isFree ?? false,
-        status: 'PENDING',
-        createdBy: user.id,
+        status: u.role === 'ADMIN' ? 'APPROVED' : 'PENDING',
+        createdBy: u.id,
         ...(clubId ? { clubId } : {}),
         ...(teamId ? { teamId } : {})
       }
     })
 
-    return sendSuccess(res, event, 'Event created and pending approval', 201)
+    return sendSuccess(res, event, u.role === 'ADMIN' ? 'Event created' : 'Event created and pending approval', 201)
   } catch (error) {
     return sendError(res, 'Failed to create event', 500, error)
   }
