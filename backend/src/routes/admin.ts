@@ -1,6 +1,6 @@
 import { Router } from 'express'
 import {
-  getUsers, updateUser,
+  getUsers, updateUser, assignLeader,
   getPendingClubs, approveClub,
   getPendingEvents, approveEvent,
   getAuditLogs, getAnalytics
@@ -13,7 +13,8 @@ router.use(authenticate)
 router.use(requireRole(ROLES.ADMIN, ROLES.MODERATOR))
 
 router.get('/users', getUsers)
-router.put('/users/:id', updateUser)
+router.put('/users/:id', requireRole(ROLES.ADMIN), updateUser)
+router.put('/users/:id/leader', requireRole(ROLES.ADMIN), assignLeader)
 router.get('/approvals/clubs', getPendingClubs)
 router.put('/approvals/clubs/:id', approveClub)
 router.get('/approvals/events', getPendingEvents)

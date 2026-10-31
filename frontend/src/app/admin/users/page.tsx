@@ -1,184 +1,154 @@
 "use client"
 
-import { useState } from "react"
-import { Search, Filter } from "lucide-react"
+import { useState, useEffect, useCallback } from "react"
+import { useSession } from "next-auth/react"
+import { Search, Filter, X } from "lucide-react"
+import { api } from "@/lib/api"
 
-const mockUsers = [
-  { id:"1", name:"John Student", email:"student@university.ac", role:"STUDENT", faculty:"Computer Science", studentId:"UA-2024-001", isActive:true, joinedAt:"Jan 2026" },
-  { id:"2", name:"Jane Leader", email:"leader@university.ac", role:"CLUB_LEADER", faculty:"Business", studentId:"UA-2024-002", isActive:true, joinedAt:"Jan 2026" },
-  { id:"3", name:"Mike Captain", email:"captain@university.ac", role:"SPORTS_CAPTAIN", faculty:"Sports Science", studentId:"UA-2024-003", isActive:true, joinedAt:"Jan 2026" },
-  { id:"4", name:"Sarah Admin", email:"admin@university.ac", role:"ADMIN", faculty:"Administration", studentId:"UA-2024-004", isActive:true, joinedAt:"Jan 2026" },
-  { id:"5", name:"Dr. Smith", email:"lecturer@university.ac", role:"LECTURER", faculty:"Computer Science", studentId:"UA-STAFF-001", isActive:true, joinedAt:"Jan 2026" },
-]
-
-const roleBadge: Record<string, { bg: string; text: string }> = {
-  STUDENT: { bg: "#F1F5F9", text: "#475569" },
-  CLUB_LEADER: { bg: "#EFF6FF", text: "#1D4ED8" },
-  SPORTS_CAPTAIN: { bg: "#F0FDF4", text: "#15803D" },
-  LECTURER: { bg: "#F5F3FF", text: "#6D28D9" },
-  MODERATOR: { bg: "#FFF7ED", text: "#C2410C" },
-  ADMIN: { bg: "#FEF2F2", text: "#DC2626" },
+const roleBadge: Record<string, { bg: string; text: string; label: string }> = {
+  STUDENT: { bg: "#F1F5F9", text: "#475569", label: "Student" },
+  CLUB_LEADER: { bg: "#EFF6FF", text: "#1D4ED8", label: "Leader" },
+  ADMIN: { bg: "#FEF2F2", text: "#DC2626", label: "Admin" }
 }
 
 export default function UsersPage() {
-  const [users, setUsers] = useState(mockUsers)
+  const { data: session, status } = useSession()
+  const [users, setUsers] = useState<any[]>([])
+  const [clubs, setClubs] = useState<any[]>([])
+  const [teams, setTeams] = useState<any[]>([])
   const [search, setSearch] = useState("")
   const [roleFilter, setRoleFilter] = useState("ALL")
+  const [loading, setLoading] = useState(true)
+  const [notice, setNotice] = useState("")
+  const [error, setError] = useState("")
+  const [assigning, setAssigning] = useState<any>(null)
+  const [choice, setChoice] = useState("")
 
-  const filtered = users.filter(u => {
-    const ms = u.name.toLowerCase().includes(search.toLowerCase()) ||
-      u.email.toLowerCase().includes(search.toLowerCase())
-    const mr = roleFilter === "ALL" || u.role === roleFilter
-    return ms && mr
-  })
+  const load = useCallback(async () => {
+    try {
+      const res = await api.getAdminUsers({ role: roleFilter, search })
+      setUsers(res.data)
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }, [roleFilter, search])
 
-  const handleSuspend = (id: string) => {
-    setUsers(prev => prev.map(u =>
-      u.id === id ? { ...u, isActive: !u.isActive } : u
-    ))
+  useEffect(() => {
+    if (status !== "authenticated") return
+    load()
+  }, [status, load])
+
+  useEffect(() => {
+    if (status !== "authenticated") return
+    api.getClubs().then(r => setClubs(r.data)).catch(() => {})
+    api.getTeams().then(r => setTeams(r.data)).catch(() => {})
+  }, [status])
+
+  const run = async (action: () => Promise<any>) => {
+    setError("")
+    setNotice("")
+    try {
+      const res = await action()
+      setNotice(res.message)
+      await load()
+    } catch (err: any) {
+      setError(err.message)
+    }
   }
+
+  const toggleActive = (u: any) => run(() => api.updateUser(u.id, { isActive: !u.isActive }))
+  const removeLeader = (u: any) => run(() => api.assignLeader(u.id, { groupType: "NONE" }))
+
+  const saveAssignment = async () => {
+    if (!choice) return
+    const [groupType, groupId] = choice.split(":")
+    await run(() => api.assignLeader(assigning.id, { groupType: groupType as "CLUB" | "TEAM", groupId }))
+    setAssigning(null)
+    setChoice("")
+  }
+
+  const linkBtn = (color: string): React.CSSProperties => ({
+    fontSize: 12, fontWeight: 500, color, background: "none", border: "none",
+    cursor: "pointer", fontFamily: "'Inter', sans-serif", padding: 0
+  })
 
   return (
     <div style={{ maxWidth: 1080, margin: "0 auto" }}>
-
-      {/* Header */}
       <div style={{ marginBottom: 28 }}>
-        <h1 style={{
-          fontFamily: "'Playfair Display', serif",
-          fontSize: 28, fontWeight: 700, color: "#0B1D3A", marginBottom: 4
-        }}>User Management</h1>
-        <p style={{ fontSize: 14, color: "#6B6962" }}>
-          Manage all platform users, roles and access
-        </p>
+        <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: 28, fontWeight: 700, color: "#0B1D3A", marginBottom: 4 }}>
+          User Management
+        </h1>
+        <p style={{ fontSize: 14, color: "#6B6962" }}>Manage users, assign leaders and control access</p>
       </div>
 
-      {/* Filters */}
-      <div style={{
-        background: "white", borderRadius: 14, padding: "18px 20px",
-        border: "1px solid #E4E2DC", marginBottom: 16,
-        display: "flex", gap: 12, flexWrap: "wrap"
-      }}>
+      {notice && <div style={{ padding: "10px 14px", borderRadius: 8, marginBottom: 16, background: "#F0FDF4", color: "#166534", border: "1px solid #BBF7D0", fontSize: 13 }}>{notice}</div>}
+      {error && <div style={{ padding: "10px 14px", borderRadius: 8, marginBottom: 16, background: "#FEF2F2", color: "#991B1B", border: "1px solid #FECACA", fontSize: 13 }}>{error}</div>}
+
+      <div style={{ background: "white", borderRadius: 14, padding: "18px 20px", border: "1px solid #E4E2DC", marginBottom: 16, display: "flex", gap: 12, flexWrap: "wrap" }}>
         <div style={{ position: "relative", flex: 1, minWidth: 200 }}>
-          <Search size={14} style={{
-            position: "absolute", left: 12, top: "50%",
-            transform: "translateY(-50%)", color: "#9CA3AF"
-          }} />
-          <input
-            type="text"
-            placeholder="Search by name or email..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            style={{
-              width: "100%", padding: "9px 12px 9px 36px",
-              fontSize: 13, borderRadius: 8,
-              border: "1.5px solid #E4E2DC", outline: "none",
-              fontFamily: "'Inter', sans-serif"
-            }}
-          />
+          <Search size={14} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "#9CA3AF" }} />
+          <input type="text" placeholder="Search by name or email..." value={search} onChange={e => setSearch(e.target.value)}
+            style={{ width: "100%", padding: "9px 12px 9px 36px", fontSize: 13, borderRadius: 8, border: "1.5px solid #E4E2DC", outline: "none", fontFamily: "'Inter', sans-serif" }} />
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <Filter size={14} color="#9CA3AF" />
-          <select
-            value={roleFilter}
-            onChange={e => setRoleFilter(e.target.value)}
-            style={{
-              padding: "9px 12px", fontSize: 13, borderRadius: 8,
-              border: "1.5px solid #E4E2DC", outline: "none",
-              fontFamily: "'Inter', sans-serif", background: "white",
-              cursor: "pointer"
-            }}
-          >
-            <option value="ALL">All Roles</option>
-            <option value="STUDENT">Student</option>
-            <option value="CLUB_LEADER">Club Leader</option>
-            <option value="SPORTS_CAPTAIN">Sports Captain</option>
-            <option value="LECTURER">Lecturer</option>
-            <option value="MODERATOR">Moderator</option>
-            <option value="ADMIN">Admin</option>
+          <select value={roleFilter} onChange={e => setRoleFilter(e.target.value)}
+            style={{ padding: "9px 12px", fontSize: 13, borderRadius: 8, border: "1.5px solid #E4E2DC", outline: "none", fontFamily: "'Inter', sans-serif", background: "white" }}>
+            <option value="ALL">All roles</option>
+            <option value="STUDENT">Students</option>
+            <option value="CLUB_LEADER">Leaders</option>
+            <option value="ADMIN">Admins</option>
           </select>
         </div>
       </div>
 
-      {/* Table */}
-      <div style={{
-        background: "white", borderRadius: 14,
-        border: "1px solid #E4E2DC", overflow: "hidden"
-      }}>
+      <div style={{ background: "white", borderRadius: 14, border: "1px solid #E4E2DC", overflow: "hidden" }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr style={{ background: "#F9FAFB", borderBottom: "1px solid #E4E2DC" }}>
-              {["Name", "Email", "Role", "Faculty", "Status", "Actions"].map(h => (
-                <th key={h} style={{
-                  padding: "12px 16px", textAlign: "left",
-                  fontSize: 12, fontWeight: 600, color: "#6B6962"
-                }}>{h}</th>
+              {["Name", "Email", "Role", "Status", "Actions"].map(h => (
+                <th key={h} style={{ padding: "12px 16px", textAlign: "left", fontSize: 12, fontWeight: 600, color: "#6B6962" }}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {filtered.map((user, i) => {
-              const badge = roleBadge[user.role] || { bg: "#F1F5F9", text: "#475569" }
+            {users.map((u, i) => {
+              const badge = roleBadge[u.role] || { bg: "#F1F5F9", text: "#475569", label: u.role }
+              const group = u.managedClub?.name || u.managedTeam?.name
+              const isMe = u.email === session?.user?.email
               return (
-                <tr key={user.id} style={{
-                  borderBottom: i < filtered.length - 1 ? "1px solid #F3F4F6" : "none"
-                }}>
+                <tr key={u.id} style={{ borderBottom: i < users.length - 1 ? "1px solid #F3F4F6" : "none" }}>
                   <td style={{ padding: "14px 16px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <div style={{
-                        width: 34, height: 34, borderRadius: 8,
-                        background: "#EFF6FF", color: "#1D4ED8",
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        fontWeight: 700, fontSize: 13, flexShrink: 0
-                      }}>{user.name.charAt(0)}</div>
-                      <div>
-                        <p style={{ fontSize: 13, fontWeight: 500, color: "#0B1D3A" }}>
-                          {user.name}
-                        </p>
-                        <p style={{ fontSize: 11, color: "#9CA3AF" }}>{user.studentId}</p>
-                      </div>
-                    </div>
+                    <p style={{ fontSize: 13, fontWeight: 500, color: "#0B1D3A" }}>{u.name}</p>
+                    <p style={{ fontSize: 11, color: "#9CA3AF" }}>{u.studentId}</p>
                   </td>
-                  <td style={{ padding: "14px 16px", fontSize: 13, color: "#6B6962" }}>
-                    {user.email}
-                  </td>
+                  <td style={{ padding: "14px 16px", fontSize: 13, color: "#6B6962" }}>{u.email}</td>
                   <td style={{ padding: "14px 16px" }}>
-                    <span style={{
-                      fontSize: 11, fontWeight: 500, padding: "3px 10px",
-                      borderRadius: 99, background: badge.bg, color: badge.text
-                    }}>{user.role}</span>
-                  </td>
-                  <td style={{ padding: "14px 16px", fontSize: 13, color: "#6B6962" }}>
-                    {user.faculty}
-                  </td>
-                  <td style={{ padding: "14px 16px" }}>
-                    <span style={{
-                      fontSize: 11, fontWeight: 500, padding: "3px 10px",
-                      borderRadius: 99,
-                      background: user.isActive ? "#F0FDF4" : "#FEF2F2",
-                      color: user.isActive ? "#15803D" : "#DC2626"
-                    }}>
-                      {user.isActive ? "Active" : "Suspended"}
+                    <span style={{ fontSize: 11, fontWeight: 500, padding: "3px 10px", borderRadius: 99, background: badge.bg, color: badge.text }}>
+                      {badge.label}{u.role === "CLUB_LEADER" ? ` · ${group || "unassigned"}` : ""}
                     </span>
                   </td>
                   <td style={{ padding: "14px 16px" }}>
-                    <div style={{ display: "flex", gap: 12 }}>
-                      <button style={{
-                        fontSize: 12, fontWeight: 500, color: "#1D4ED8",
-                        background: "none", border: "none", cursor: "pointer",
-                        fontFamily: "'Inter', sans-serif"
-                      }}>Edit</button>
-                      <button
-                        onClick={() => handleSuspend(user.id)}
-                        style={{
-                          fontSize: 12, fontWeight: 500,
-                          color: user.isActive ? "#DC2626" : "#15803D",
-                          background: "none", border: "none", cursor: "pointer",
-                          fontFamily: "'Inter', sans-serif"
-                        }}
-                      >
-                        {user.isActive ? "Suspend" : "Activate"}
-                      </button>
-                    </div>
+                    <span style={{ fontSize: 11, fontWeight: 500, padding: "3px 10px", borderRadius: 99, background: u.isActive ? "#F0FDF4" : "#FEF2F2", color: u.isActive ? "#15803D" : "#DC2626" }}>
+                      {u.isActive ? "Active" : "Suspended"}
+                    </span>
+                  </td>
+                  <td style={{ padding: "14px 16px" }}>
+                    {u.role === "ADMIN" || isMe ? (
+                      <span style={{ fontSize: 12, color: "#9CA3AF" }}>—</span>
+                    ) : (
+                      <div style={{ display: "flex", gap: 14 }}>
+                        <button style={linkBtn("#1D4ED8")} onClick={() => { setAssigning(u); setChoice("") }}>
+                          {u.role === "CLUB_LEADER" ? "Change group" : "Make leader"}
+                        </button>
+                        {u.role === "CLUB_LEADER" && <button style={linkBtn("#C2410C")} onClick={() => removeLeader(u)}>Remove leader</button>}
+                        <button style={linkBtn(u.isActive ? "#DC2626" : "#15803D")} onClick={() => toggleActive(u)}>
+                          {u.isActive ? "Suspend" : "Activate"}
+                        </button>
+                      </div>
+                    )}
                   </td>
                 </tr>
               )
@@ -186,35 +156,41 @@ export default function UsersPage() {
           </tbody>
         </table>
 
-        {filtered.length === 0 && (
-          <div style={{ padding: "48px", textAlign: "center" }}>
-            <p style={{ fontSize: 14, color: "#6B6962" }}>No users found matching your search</p>
-          </div>
+        {!loading && users.length === 0 && (
+          <div style={{ padding: 48, textAlign: "center", fontSize: 14, color: "#6B6962" }}>No users found</div>
         )}
-
-        {/* Footer */}
-        <div style={{
-          padding: "12px 16px", borderTop: "1px solid #E4E2DC",
-          display: "flex", justifyContent: "space-between", alignItems: "center"
-        }}>
-          <p style={{ fontSize: 12, color: "#9CA3AF" }}>
-            Showing {filtered.length} of {users.length} users
-          </p>
-          <div style={{ display: "flex", gap: 8 }}>
-            <button style={{
-              fontSize: 12, padding: "6px 14px", borderRadius: 8,
-              border: "1px solid #E4E2DC", background: "white",
-              cursor: "pointer", fontFamily: "'Inter', sans-serif"
-            }}>Previous</button>
-            <button style={{
-              fontSize: 12, padding: "6px 14px", borderRadius: 8,
-              border: "1px solid #E4E2DC", background: "white",
-              cursor: "pointer", fontFamily: "'Inter', sans-serif"
-            }}>Next</button>
-          </div>
+        <div style={{ padding: "12px 16px", borderTop: "1px solid #E4E2DC", fontSize: 12, color: "#9CA3AF" }}>
+          {users.length} user{users.length !== 1 ? "s" : ""}
         </div>
       </div>
 
+      {assigning && (
+        <div onClick={() => setAssigning(null)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: "white", borderRadius: 16, padding: 28, width: "min(440px, 90vw)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+              <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, color: "#0B1D3A" }}>Assign leader</h2>
+              <button onClick={() => setAssigning(null)} style={{ background: "none", border: "none", cursor: "pointer" }}><X size={18} /></button>
+            </div>
+            <p style={{ fontSize: 13, color: "#6B6962", marginBottom: 20 }}>
+              {assigning.name} will manage only the group you choose. They must sign out and in again to see leader menus.
+            </p>
+            <select value={choice} onChange={e => setChoice(e.target.value)}
+              style={{ width: "100%", padding: "11px 12px", fontSize: 14, borderRadius: 10, border: "1.5px solid #E4E2DC", marginBottom: 20, fontFamily: "'Inter', sans-serif" }}>
+              <option value="">Select a club, society or team…</option>
+              <optgroup label="Clubs and societies">
+                {clubs.map(c => <option key={c.id} value={`CLUB:${c.id}`}>{c.name} ({c.type === "SOCIETY" ? "Society" : "Club"})</option>)}
+              </optgroup>
+              <optgroup label="Sports teams">
+                {teams.map(t => <option key={t.id} value={`TEAM:${t.id}`}>{t.name}</option>)}
+              </optgroup>
+            </select>
+            <button onClick={saveAssignment} disabled={!choice}
+              style={{ width: "100%", padding: 13, borderRadius: 10, border: "none", background: choice ? "#0B1D3A" : "#8A9BC0", color: "white", fontSize: 14, fontWeight: 600, cursor: choice ? "pointer" : "not-allowed", fontFamily: "'Inter', sans-serif" }}>
+              Save
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

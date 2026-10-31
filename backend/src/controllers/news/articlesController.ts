@@ -58,24 +58,35 @@ export const getArticleById = async (req: Request, res: Response) => {
 // POST /api/articles
 export const createArticle = async (req: AuthRequest, res: Response) => {
   try {
-    const { title, content, clubId, teamId, isUniversityWide, tags } = req.body
+    const u = req.user!
+    const { title, content, tags } = req.body
 
-    const user = await prisma.user.findUnique({ where: { email: req.user?.email } })
-    if (!user) return sendError(res, 'User not found', 404)
+    let clubId: string | undefined
+    let teamId: string | undefined
+    let isUniversityWide = false
+    if (u.role === 'CLUB_LEADER') {
+      clubId = u.managedClubId ?? undefined
+      teamId = u.managedTeamId ?? undefined
+      if (!clubId && !teamId) return sendError(res, 'You are not assigned to a club or team yet', 403)
+    } else {
+      clubId = req.body.clubId || undefined
+      teamId = req.body.teamId || undefined
+      isUniversityWide = req.body.isUniversityWide ?? false
+    }
 
     const article = await prisma.article.create({
       data: {
         title, content,
-        authorId: user.id,
-        status: 'PENDING',
-        isUniversityWide: isUniversityWide ?? false,
+        authorId: u.id,
+        status: u.role === 'ADMIN' ? 'PUBLISHED' : 'PENDING',
+        isUniversityWide,
         tags: tags ?? [],
         ...(clubId ? { clubId } : {}),
         ...(teamId ? { teamId } : {})
       }
     })
 
-    return sendSuccess(res, article, 'Article submitted for review', 201)
+    return sendSuccess(res, article, u.role === 'ADMIN' ? 'Article published' : 'Article submitted for review', 201)
   } catch (error) {
     return sendError(res, 'Failed to create article', 500, error)
   }

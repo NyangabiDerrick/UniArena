@@ -4,7 +4,7 @@ import {
   getClubs, getClubById, createClub,
   joinClub, getClubMembers, updateMembership
 } from '../controllers/clubs/clubsController'
-import { authenticate, requireRole, ROLES } from '../middleware/auth'
+import { authenticate, requireRole, requireGroupManager, ROLES } from '../middleware/auth'
 import { validate } from '../middleware/validate'
 
 const router = Router()
@@ -15,15 +15,21 @@ router.post('/',
   authenticate,
   requireRole(ROLES.STUDENT, ROLES.ADMIN),
   [
-    body('name').trim().notEmpty().withMessage('Club name is required').isLength({ max: 100 }),
-    body('description').trim().notEmpty().withMessage('Description is required').isLength({ max: 1000 }),
-    body('category').trim().notEmpty().withMessage('Category is required')
+    body('name').trim().notEmpty().isLength({ max: 100 }),
+    body('description').trim().notEmpty().isLength({ max: 1000 }),
+    body('category').trim().notEmpty()
   ],
   validate,
   createClub
 )
 router.post('/:id/join', authenticate, requireRole(ROLES.STUDENT), joinClub)
-router.get('/:id/members', authenticate, getClubMembers)
-router.put('/:id/members/:userId', authenticate, requireRole(ROLES.CLUB_LEADER, ROLES.ADMIN), updateMembership)
+router.get('/:id/members', authenticate, requireGroupManager('club'), getClubMembers)
+router.put('/:id/members/:userId',
+  authenticate,
+  requireGroupManager('club'),
+  [body('status').isIn(['ACTIVE', 'REJECTED', 'BANNED'])],
+  validate,
+  updateMembership
+)
 
 export default router

@@ -10,13 +10,13 @@ router.get('/', getEvents)
 router.get('/:id', getEventById)
 router.post('/',
   authenticate,
-  requireRole(ROLES.CLUB_LEADER, ROLES.SPORTS_CAPTAIN, ROLES.ADMIN),
+  requireRole(ROLES.CLUB_LEADER, ROLES.ADMIN),
   [
-    body('title').trim().notEmpty().withMessage('Title is required').isLength({ max: 200 }),
-    body('venue').trim().notEmpty().withMessage('Venue is required'),
-    body('startsAt').isISO8601().withMessage('Valid start date is required'),
-    body('endsAt').isISO8601().withMessage('Valid end date is required'),
-    body('capacity').isInt({ min: 1 }).withMessage('Capacity must be at least 1')
+    body('title').trim().notEmpty().isLength({ max: 200 }),
+    body('venue').trim().notEmpty(),
+    body('startsAt').isISO8601(),
+    body('endsAt').isISO8601(),
+    body('capacity').isInt({ min: 1 })
   ],
   validate,
   createEvent

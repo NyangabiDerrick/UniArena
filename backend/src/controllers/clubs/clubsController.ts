@@ -3,14 +3,16 @@ import { prisma } from '../../config/prisma'
 import { sendSuccess, sendError } from '../../utils/response'
 import { AuthRequest } from '../../middleware/auth'
 
-// GET /api/clubs — get all approved clubs
+// GET /api/clubs: all active clubs and societies (public)
 export const getClubs = async (req: Request, res: Response) => {
   try {
-    const { category, search } = req.query
+    const { category, search, type } = req.query
+    const typeFilter = type === 'CLUB' || type === 'SOCIETY' ? { type } : {}
 
     const clubs = await prisma.club.findMany({
       where: {
         status: 'ACTIVE',
+        ...typeFilter,
         ...(category && category !== 'All' ? { category: String(category) } : {}),
         ...(search ? {
           OR: [
@@ -31,18 +33,18 @@ export const getClubs = async (req: Request, res: Response) => {
   }
 }
 
-// GET /api/clubs/:id — get single club
+// GET /api/clubs/:id: one club (public, so no emails are exposed)
 export const getClubById = async (req: Request, res: Response) => {
   try {
     const club = await prisma.club.findUnique({
       where: { id: req.params.id },
       include: {
         committees: {
-          include: { user: { select: { name: true, email: true } } }
+          include: { user: { select: { name: true } } }
         },
         memberships: {
           where: { status: 'ACTIVE' },
-          include: { user: { select: { name: true, email: true, faculty: true } } },
+          include: { user: { select: { name: true, faculty: true } } },
           take: 10
         },
         events: {
@@ -61,7 +63,7 @@ export const getClubById = async (req: Request, res: Response) => {
   }
 }
 
-// POST /api/clubs — create club request
+// POST /api/clubs: request a new club (starts as PENDING)
 export const createClub = async (req: AuthRequest, res: Response) => {
   try {
     const { name, description, category } = req.body
@@ -84,25 +86,23 @@ export const createClub = async (req: AuthRequest, res: Response) => {
   }
 }
 
-// POST /api/clubs/:id/join — join a club
+// POST /api/clubs/:id/join: student asks to join
 export const joinClub = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params
+    const userId = req.user!.id
 
     const club = await prisma.club.findUnique({ where: { id } })
     if (!club) return sendError(res, 'Club not found', 404)
     if (club.status !== 'ACTIVE') return sendError(res, 'This club is not accepting members', 400)
 
-    const user = await prisma.user.findUnique({ where: { email: req.user?.email } })
-    if (!user) return sendError(res, 'User not found', 404)
-
     const existing = await prisma.clubMembership.findUnique({
-      where: { userId_clubId: { userId: user.id, clubId: id } }
+      where: { userId_clubId: { userId, clubId: id } }
     })
     if (existing) return sendError(res, 'You have already requested or joined this club', 409)
 
     const membership = await prisma.clubMembership.create({
-      data: { userId: user.id, clubId: id, status: 'PENDING' }
+      data: { userId, clubId: id, status: 'PENDING' }
     })
 
     return sendSuccess(res, membership, 'Join request submitted successfully', 201)
@@ -111,13 +111,13 @@ export const joinClub = async (req: AuthRequest, res: Response) => {
   }
 }
 
-// GET /api/clubs/:id/members — get club members
+// GET /api/clubs/:id/members: only that club's leader or an admin (enforced in the route)
 export const getClubMembers = async (req: Request, res: Response) => {
   try {
     const members = await prisma.clubMembership.findMany({
       where: { clubId: req.params.id },
       include: {
-        user: { select: { name: true, email: true, faculty: true, studentId: true } }
+        user: { select: { id: true, name: true, email: true, faculty: true, studentId: true } }
       },
       orderBy: { joinedAt: 'desc' }
     })
@@ -128,25 +128,31 @@ export const getClubMembers = async (req: Request, res: Response) => {
   }
 }
 
-// PUT /api/clubs/:id/members/:userId — approve or reject member
+// PUT /api/clubs/:id/members/:userId: approve, reject or ban (leader or admin)
 export const updateMembership = async (req: AuthRequest, res: Response) => {
   try {
     const { id, userId } = req.params
     const { status } = req.body
+
+    const current = await prisma.clubMembership.findUnique({
+      where: { userId_clubId: { userId, clubId: id } }
+    })
+    if (!current) return sendError(res, 'Membership not found', 404)
 
     const membership = await prisma.clubMembership.update({
       where: { userId_clubId: { userId, clubId: id } },
       data: { status }
     })
 
-    if (status === 'ACTIVE') {
-      await prisma.club.update({
-        where: { id },
-        data: { memberCount: { increment: 1 } }
-      })
+    // Keep the member count right: only count a person when they become ACTIVE
+    // or stop being ACTIVE, never twice for the same change.
+    if (status === 'ACTIVE' && current.status !== 'ACTIVE') {
+      await prisma.club.update({ where: { id }, data: { memberCount: { increment: 1 } } })
+    } else if (status !== 'ACTIVE' && current.status === 'ACTIVE') {
+      await prisma.club.update({ where: { id }, data: { memberCount: { decrement: 1 } } })
     }
 
-    return sendSuccess(res, membership, `Membership ${status.toLowerCase()}`)
+    return sendSuccess(res, membership, `Membership ${String(status).toLowerCase()}`)
   } catch (error) {
     return sendError(res, 'Failed to update membership', 500, error)
   }
