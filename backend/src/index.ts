@@ -5,7 +5,7 @@ import morgan from 'morgan'
 import cookieParser from 'cookie-parser'
 import dotenv from 'dotenv'
 import { errorHandler, notFound } from './middleware/errorHandler'
-import { generalLimiter } from './middleware/rateLimiter'
+import { generalLimiter, identifyForLimits, userLimiter } from './middleware/rateLimiter'
 import authRoutes from './routes/auth'
 import userRoutes from './routes/users'
 import clubRoutes from './routes/clubs'
@@ -19,11 +19,17 @@ import adminReportRoutes from './routes/adminReports'
 import appealRoutes from './routes/appeals'
 import adminAppealRoutes from './routes/adminAppeals'
 import commentRoutes from './routes/comments'
+import countsRoutes from './routes/counts'
 
 dotenv.config()
 
 const app = express()
 const PORT = process.env.PORT || 5000
+
+// Behind a hosting proxy (Railway, Vercel, nginx) set TRUST_PROXY_HOPS=1 so each
+// person's real IP is used. Leave it unset on your own computer.
+const proxyHops = Number(process.env.TRUST_PROXY_HOPS || 0)
+if (proxyHops > 0) app.set('trust proxy', proxyHops)
 
 // Security headers
 app.use(helmet())
@@ -49,6 +55,8 @@ app.use(cors({
 }))
 
 app.use(generalLimiter)
+app.use(identifyForLimits)
+app.use(userLimiter)
 app.use(morgan('dev'))
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
@@ -78,6 +86,7 @@ app.use('/api/admin', adminRoutes)
 app.use('/api/notifications', notificationRoutes)
 app.use('/api/messages', messageRoutes)
 app.use('/api/admin/reports', adminReportRoutes)
+app.use('/api/counts', countsRoutes)
 
 // These two MUST stay last. Anything registered after them is never reached.
 app.use(notFound)
