@@ -1,6 +1,5 @@
 "use client"
 
-import { useState } from "react"
 import MainLayout from "@/components/layout/MainLayout"
 import { MessageSquare, Pin, Plus, ArrowLeft } from "lucide-react"
 import Link from "next/link"
@@ -49,7 +48,7 @@ const mockPosts = [
 ]
 
 export default function DiscussionPage() {
-  const [posts, setPosts] = useState(mockPosts)
+  const posts = mockPosts
 
   const pinned = posts.filter(p => p.isPinned)
   const regular = posts.filter(p => !p.isPinned)

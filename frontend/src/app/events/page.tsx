@@ -6,17 +6,10 @@ import { Search, Calendar, Clock, MapPin, Users } from "lucide-react"
 import Link from "next/link"
 import { api } from "@/lib/api"
 import { useEffect } from "react"
+import type { Event } from "@/lib/types"
+import { PAID_TICKET_PRICE, eventCategory, eventSold, formatEventDate, formatEventTime } from "@/lib/format"
 
 const categories = ["All","Club","Sports","University","Academic","Social"]
-
-const mockEvents = [
-  { id:"1", title:"Annual Sports Day", description:"The biggest sporting event of the year featuring competitions across 10 sports.", category:"Sports", date:"June 7, 2026", time:"9:00 AM", venue:"Main Stadium", organiser:"Sports Department", capacity:500, sold:342, isFree:true, price:0 },
-  { id:"2", title:"Photography Exhibition", description:"Annual showcase of the best photography work from our Photography Society members.", category:"Club", date:"June 10, 2026", time:"2:00 PM", venue:"Arts Building Gallery", organiser:"Photography Society", capacity:150, sold:89, isFree:true, price:0 },
-  { id:"3", title:"Entrepreneurship Pitch Night", description:"Student entrepreneurs pitch their startup ideas to a panel of industry judges.", category:"Academic", date:"June 12, 2026", time:"6:00 PM", venue:"Business School Auditorium", organiser:"Entrepreneurship Club", capacity:200, sold:167, isFree:false, price:5 },
-  { id:"4", title:"African Culture Night", description:"A celebration of African heritage through music, dance, food and art.", category:"Social", date:"June 15, 2026", time:"7:00 PM", venue:"Student Union Hall", organiser:"African Culture Society", capacity:300, sold:201, isFree:false, price:10 },
-  { id:"5", title:"Inter-University Debate", description:"UniArena's debate team takes on teams from 5 other universities.", category:"Academic", date:"June 18, 2026", time:"10:00 AM", venue:"Law Faculty Moot Room", organiser:"Debate Society", capacity:100, sold:45, isFree:true, price:0 },
-  { id:"6", title:"End of Year Concert", description:"The biggest social event of the year featuring live performances and DJ sets.", category:"Social", date:"June 25, 2026", time:"8:00 PM", venue:"Open Air Amphitheatre", organiser:"Student Union", capacity:1000, sold:876, isFree:false, price:15 },
-]
 
 const catColors: Record<string, { bg: string; text: string }> = {
   Club: { bg: "#EFF6FF", text: "#1D4ED8" },
@@ -27,8 +20,7 @@ const catColors: Record<string, { bg: string; text: string }> = {
 }
 
 export default function EventsPage() {
-  const [events, setEvents] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
+  const [events, setEvents] = useState<Event[]>([])
   const [search, setSearch] = useState("")
   const [selected, setSelected] = useState("All")
   const [freeOnly, setFreeOnly] = useState(false)
@@ -36,20 +28,17 @@ export default function EventsPage() {
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-        setLoading(true)
         const res = await api.getEvents({ search, free: freeOnly })
         setEvents(res.data)
       } catch (err) {
         console.error('Failed to fetch events:', err)
-      } finally {
-        setLoading(false)
       }
     }
     fetchEvents()
   }, [search, freeOnly])
 
   const filtered = events.filter(e =>
-    selected === "All" || e.category === selected
+    selected === "All" || eventCategory(e) === selected
   )
 
   return (
@@ -102,9 +91,11 @@ export default function EventsPage() {
         {/* Events list */}
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           {filtered.map(event => {
-            const spotsLeft = event.capacity - event.sold
-            const pct = Math.round((event.sold / event.capacity) * 100)
-            const cat = catColors[event.category] || { bg: "#F1F5F9", text: "#475569" }
+            const capacity = event.capacity ?? 0
+            const sold = eventSold(event)
+            const spotsLeft = capacity - sold
+            const pct = capacity ? Math.round((sold / capacity) * 100) : 0
+            const cat = catColors[eventCategory(event)] || { bg: "#F1F5F9", text: "#475569" }
             return (
               <Link key={event.id} href={`/events/${event.id}`} style={{ textDecoration: "none" }}>
                 <div style={{
@@ -128,7 +119,7 @@ export default function EventsPage() {
                       {/* Badges */}
                       <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
                         <span style={{ fontSize: 11, padding: "3px 10px", borderRadius: 99, fontWeight: 500, background: cat.bg, color: cat.text }}>
-                          {event.category}
+                          {eventCategory(event)}
                         </span>
                         {event.isFree && <span style={{ fontSize: 11, padding: "3px 10px", borderRadius: 99, fontWeight: 500, background: "#F0FDF4", color: "#15803D" }}>Free</span>}
                         {spotsLeft === 0 && <span style={{ fontSize: 11, padding: "3px 10px", borderRadius: 99, fontWeight: 500, background: "#FEF2F2", color: "#DC2626" }}>Sold Out</span>}
@@ -139,8 +130,8 @@ export default function EventsPage() {
 
                       {/* Meta */}
                       <div style={{ display: "flex", flexWrap: "wrap", gap: 16, fontSize: 12, color: "#9CA3AF", marginBottom: 14 }}>
-                        <span style={{ display: "flex", alignItems: "center", gap: 5 }}><Calendar size={13} />{event.date}</span>
-                        <span style={{ display: "flex", alignItems: "center", gap: 5 }}><Clock size={13} />{event.time}</span>
+                        <span style={{ display: "flex", alignItems: "center", gap: 5 }}><Calendar size={13} />{formatEventDate(event)}</span>
+                        <span style={{ display: "flex", alignItems: "center", gap: 5 }}><Clock size={13} />{formatEventTime(event)}</span>
                         <span style={{ display: "flex", alignItems: "center", gap: 5 }}><MapPin size={13} />{event.venue}</span>
                         <span style={{ display: "flex", alignItems: "center", gap: 5 }}><Users size={13} />{spotsLeft} spots left</span>
                       </div>
@@ -153,13 +144,13 @@ export default function EventsPage() {
                           width: `${pct}%`
                         }} />
                       </div>
-                      <p style={{ fontSize: 11, color: "#9CA3AF", marginTop: 4 }}>{event.sold} / {event.capacity} registered</p>
+                      <p style={{ fontSize: 11, color: "#9CA3AF", marginTop: 4 }}>{sold} / {capacity} registered</p>
                     </div>
 
                     {/* Price + CTA */}
                     <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 12, flexShrink: 0 }}>
                       <p style={{ fontSize: 20, fontWeight: 700, color: "#0B1D3A", fontFamily: "'Playfair Display', serif" }}>
-                        {event.isFree ? "Free" : `$${event.price}`}
+                        {event.isFree ? "Free" : `$${event.price ?? PAID_TICKET_PRICE}`}
                       </p>
                       <span style={{
                         fontSize: 12, fontWeight: 600, padding: "8px 18px", borderRadius: 8,

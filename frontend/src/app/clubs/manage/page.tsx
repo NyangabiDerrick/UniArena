@@ -1,10 +1,12 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect } from "react"
 import { useSession } from "next-auth/react"
 import MainLayout from "@/components/layout/MainLayout"
 import { Users, Calendar, CheckCircle, XCircle } from "lucide-react"
 import { api } from "@/lib/api"
+import { errorMessage } from "@/lib/types"
+import type { Club, MemberWithUser } from "@/lib/types"
 
 const card: React.CSSProperties = {
   background: "white", borderRadius: 14, border: "1px solid #E4E2DC"
@@ -15,44 +17,42 @@ const date = (d: string) =>
 
 export default function ManageClubPage() {
   const { status } = useSession()
-  const [club, setClub] = useState<any>(null)
-  const [members, setMembers] = useState<any[]>([])
+  const [club, setClub] = useState<Club | null>(null)
+  const [members, setMembers] = useState<MemberWithUser[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   const [notice, setNotice] = useState("")
   const [tab, setTab] = useState("overview")
 
-  const load = useCallback(async () => {
-    try {
-      const mine = await api.getMyClub()
-      setClub(mine.data)
-      const list = await api.getClubMembers(mine.data.id)
-      setMembers(list.data)
-      setError("")
-    } catch (err: any) {
-      setError(err.message)
-    } finally {
-      setLoading(false)
-    }
-  }, [])
+  const [reloadKey, setReloadKey] = useState(0)
 
   useEffect(() => {
     if (status !== "authenticated") return
-    load()
-  }, [status, load])
+    api.getMyClub()
+      .then(async mine => {
+        setClub(mine.data)
+        const list = await api.getClubMembers(mine.data.id)
+        setMembers(list.data)
+        setError("")
+      })
+      .catch(err => setError(errorMessage(err)))
+      .finally(() => setLoading(false))
+  }, [status, reloadKey])
 
   const decide = async (userId: string, next: "ACTIVE" | "REJECTED", successText: string) => {
+    if (!club) return
     setNotice("")
     try {
       await api.updateMembership(club.id, userId, next)
       setNotice(successText)
-      await load()
-    } catch (err: any) {
-      setError(err.message)
+      setReloadKey(k => k + 1)
+    } catch (err) {
+      setError(errorMessage(err))
     }
   }
 
-  const removeMember = (m: any) => {
+  const removeMember = (m: MemberWithUser) => {
+    if (!club) return
     if (!window.confirm(`Remove ${m.user.name} from ${club.name}?`)) return
     decide(m.user.id, "REJECTED", `${m.user.name} was removed`)
   }

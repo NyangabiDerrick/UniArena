@@ -4,6 +4,7 @@ import { useState } from "react"
 import Link from "next/link"
 import AuthShell, { inputStyle, labelStyle, primaryButton, errorBox, successBox, linkStyle } from "@/components/layout/AuthShell"
 import { registerAccount } from "@/lib/authApi"
+import { errorMessage } from "@/lib/types"
 
 export default function RegisterPage() {
   const [form, setForm] = useState({ name: "", studentId: "", email: "", faculty: "", password: "", confirm: "" })
@@ -25,8 +26,8 @@ export default function RegisterPage() {
         faculty: form.faculty || undefined, password: form.password
       })
       setDone(true)
-    } catch (err: any) {
-      setError(err.message)
+    } catch (err) {
+      setError(errorMessage(err))
     } finally {
       setLoading(false)
     }

@@ -1,21 +1,19 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { Suspense, useState } from "react"
 import Link from "next/link"
+import { useSearchParams } from "next/navigation"
 import AuthShell, { inputStyle, labelStyle, primaryButton, errorBox, successBox, linkStyle } from "@/components/layout/AuthShell"
 import { resetPassword } from "@/lib/authApi"
+import { errorMessage } from "@/lib/types"
 
-export default function ResetPasswordPage() {
-  const [token, setToken] = useState("")
+function ResetPasswordForm() {
+  const token = useSearchParams().get("token") || ""
   const [password, setPassword] = useState("")
   const [confirm, setConfirm] = useState("")
   const [error, setError] = useState("")
   const [done, setDone] = useState(false)
   const [loading, setLoading] = useState(false)
-
-  useEffect(() => {
-    setToken(new URLSearchParams(window.location.search).get("token") || "")
-  }, [])
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -25,8 +23,8 @@ export default function ResetPasswordPage() {
     try {
       await resetPassword(token, password)
       setDone(true)
-    } catch (err: any) {
-      setError(err.message)
+    } catch (err) {
+      setError(errorMessage(err))
     } finally {
       setLoading(false)
     }
@@ -58,5 +56,14 @@ export default function ResetPasswordPage() {
         </button>
       </form>
     </AuthShell>
+  )
+}
+
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense>
+      <ResetPasswordForm />
+    </Suspense>
   )
 }

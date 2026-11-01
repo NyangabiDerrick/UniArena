@@ -6,36 +6,24 @@ import { Search, Users } from "lucide-react"
 import Link from "next/link"
 import { api } from "@/lib/api"
 import { useEffect } from "react"
+import type { Team } from "@/lib/types"
 
 const sports = ["All","Football","Basketball","Swimming","Athletics","Rugby","Tennis","Cricket","Volleyball"]
-
-const mockTeams = [
-  { id:"1", name:"UniArena FC", sport:"Football", description:"The university's flagship football team competing in the national university league.", memberCount:25, wins:8, losses:2, draws:1 },
-  { id:"2", name:"UniArena Ballers", sport:"Basketball", description:"Our basketball team competing in the regional university basketball championship.", memberCount:15, wins:6, losses:4, draws:0 },
-  { id:"3", name:"UniArena Swim Team", sport:"Swimming", description:"Competitive swimming across all strokes and distances at national level.", memberCount:20, wins:10, losses:1, draws:0 },
-  { id:"4", name:"UniArena Athletics", sport:"Athletics", description:"Track and field athletes representing the university at regional competitions.", memberCount:30, wins:5, losses:3, draws:2 },
-  { id:"5", name:"UniArena Rugby", sport:"Rugby", description:"Fifteen-a-side rugby competing in the university rugby union league.", memberCount:28, wins:4, losses:5, draws:1 },
-  { id:"6", name:"UniArena Tennis", sport:"Tennis", description:"Singles and doubles tennis players competing at university level.", memberCount:12, wins:7, losses:2, draws:0 },
-]
 
 const sportEmoji: Record<string,string> = { Football:"⚽", Basketball:"🏀", Swimming:"🏊", Athletics:"🏃", Rugby:"🏉", Tennis:"🎾", Cricket:"🏏", Volleyball:"🏐" }
 
 export default function SportsPage() {
-  const [teams, setTeams] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
+  const [teams, setTeams] = useState<Team[]>([])
   const [search, setSearch] = useState("")
   const [selected, setSelected] = useState("All")
 
   useEffect(() => {
     const fetchTeams = async () => {
       try {
-        setLoading(true)
         const res = await api.getTeams({ sport: selected, search })
         setTeams(res.data)
       } catch (err) {
         console.error('Failed to fetch teams:', err)
-      } finally {
-        setLoading(false)
       }
     }
     fetchTeams()
@@ -138,12 +126,12 @@ export default function SportsPage() {
                   display: "flex", alignItems: "center", gap: 16,
                   paddingTop: 14, borderTop: "1px solid #F3F4F6"
                 }}>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: "#16A34A" }}>W {team.wins}</span>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: "#DC2626" }}>L {team.losses}</span>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: "#6B7280" }}>D {team.draws}</span>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: "#16A34A" }}>W {team.wins ?? 0}</span>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: "#DC2626" }}>L {team.losses ?? 0}</span>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: "#6B7280" }}>D {team.draws ?? 0}</span>
                   <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 4, color: "#9CA3AF" }}>
                     <Users size={12} />
-                    <span style={{ fontSize: 11 }}>{team.memberCount}</span>
+                    <span style={{ fontSize: 11 }}>{team.memberCount ?? team._count?.squadMembers ?? 0}</span>
                   </div>
                 </div>
               </div>
