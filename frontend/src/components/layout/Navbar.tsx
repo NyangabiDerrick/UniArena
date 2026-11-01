@@ -3,21 +3,33 @@
 import { useState, useEffect } from "react"
 import { signOut, useSession } from "next-auth/react"
 import { usePathname } from "next/navigation"
-import { Bell, LogOut, User } from "lucide-react"
+import { Bell, LogOut, User, MessageSquare } from "lucide-react"
 import Link from "next/link"
 import { getNotifications } from "@/lib/notificationsApi"
+import { getUnreadMessages } from "@/lib/messagesApi"
+
+const badge: React.CSSProperties = {
+  position: "absolute", top: 3, right: 1, minWidth: 16, height: 16, padding: "0 4px",
+  borderRadius: 99, backgroundColor: "#C9A84C", color: "#0B1D3A",
+  fontSize: 10, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center"
+}
 
 export default function Navbar() {
   const { data: session, status } = useSession()
   const pathname = usePathname()
   const [unread, setUnread] = useState(0)
+  const [unreadMessages, setUnreadMessages] = useState(0)
 
-  // Refresh the count whenever you move to another page
+  // Refresh counts when you change page, and every 20 seconds
   useEffect(() => {
     if (status !== "authenticated") return
-    getNotifications()
-      .then(d => setUnread(d.unreadCount))
-      .catch(() => {})
+    const refresh = () => {
+      getNotifications().then(d => setUnread(d.unreadCount)).catch(() => {})
+      getUnreadMessages().then(d => setUnreadMessages(d.count)).catch(() => {})
+    }
+    refresh()
+    const timer = setInterval(refresh, 20000)
+    return () => clearInterval(timer)
   }, [status, pathname])
 
   const iconLink: React.CSSProperties = {
@@ -45,17 +57,14 @@ export default function Navbar() {
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+        <Link href="/messages" style={iconLink} aria-label={unreadMessages > 0 ? `${unreadMessages} unread messages` : "Messages"}>
+          <MessageSquare size={17} />
+          {unreadMessages > 0 && <span style={badge}>{unreadMessages > 9 ? "9+" : unreadMessages}</span>}
+        </Link>
+
         <Link href="/notifications" style={iconLink} aria-label={unread > 0 ? `${unread} unread notifications` : "Notifications"}>
           <Bell size={17} />
-          {unread > 0 && (
-            <span style={{
-              position: "absolute", top: 3, right: 1, minWidth: 16, height: 16, padding: "0 4px",
-              borderRadius: 99, backgroundColor: "#C9A84C", color: "#0B1D3A",
-              fontSize: 10, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center"
-            }}>
-              {unread > 9 ? "9+" : unread}
-            </span>
-          )}
+          {unread > 0 && <span style={badge}>{unread > 9 ? "9+" : unread}</span>}
         </Link>
 
         <Link href="/profile" style={iconLink} aria-label="Profile">
