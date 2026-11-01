@@ -13,6 +13,7 @@ import sportRoutes from './routes/sports'
 import eventRoutes from './routes/events'
 import articleRoutes from './routes/articles'
 import adminRoutes from './routes/admin'
+import notificationRoutes from './routes/notifications'
 
 dotenv.config()
 
@@ -66,6 +67,7 @@ app.use('/api/sports', sportRoutes)
 app.use('/api/events', eventRoutes)
 app.use('/api/articles', articleRoutes)
 app.use('/api/admin', adminRoutes)
+app.use('/api/notifications', notificationRoutes)
 
 // These two MUST stay last. Anything registered after them is never reached.
 app.use(notFound)

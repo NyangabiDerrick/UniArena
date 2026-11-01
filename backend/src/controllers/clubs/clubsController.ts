@@ -144,6 +144,20 @@ export const updateMembership = async (req: AuthRequest, res: Response) => {
       where: { userId_clubId: { userId, clubId: id } },
       data: { status }
     })
+    if (status === 'ACTIVE' || status === 'REJECTED') {
+      const group = await prisma.club.findUnique({ where: { id }, select: { name: true } })
+      await prisma.notification.create({
+        data: {
+          userId,
+          title: status === 'ACTIVE' ? 'Request approved' : 'Request declined',
+          message: status === 'ACTIVE'
+            ? `You are now a member of ${group?.name}.`
+            : `Your request to join ${group?.name} was declined.`,
+          type: 'club',
+          link: `/clubs/${id}`
+        }
+      })
+    }
 
     return sendSuccess(res, membership, `Membership ${String(status).toLowerCase()}`)
   } catch (error) {
