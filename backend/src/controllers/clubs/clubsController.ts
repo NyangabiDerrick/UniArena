@@ -176,3 +176,16 @@ export const getMyClub = async (req: AuthRequest, res: Response) => {
     return sendError(res, 'Failed to fetch your club', 500, error)
   }
 }
+
+// GET /api/clubs/:id/membership: the signed-in user's status in this club
+export const getMembershipStatus = async (req: AuthRequest, res: Response) => {
+  try {
+    const m = await prisma.clubMembership.findUnique({
+      where: { userId_clubId: { userId: req.user!.id, clubId: req.params.id } },
+      select: { status: true }
+    })
+    return sendSuccess(res, { status: m?.status ?? null })
+  } catch (error) {
+    return sendError(res, 'Failed to check membership', 500, error)
+  }
+}
