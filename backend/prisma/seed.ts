@@ -15,7 +15,6 @@ async function main() {
         description: 'A club for photography enthusiasts on campus. We organise photo walks, exhibitions and workshops.',
         category: 'Arts',
         status: 'ACTIVE',
-        memberCount: 124,
         foundedAt: new Date('2019-01-01')
       }
     }),
@@ -26,8 +25,7 @@ async function main() {
         name: 'Chess Club',
         description: 'Competitive and recreational chess for all skill levels. Weekly tournaments and training sessions.',
         category: 'Academic',
-        status: 'ACTIVE',
-        memberCount: 56
+        status: 'ACTIVE'
       }
     }),
     prisma.club.upsert({
@@ -37,8 +35,7 @@ async function main() {
         name: 'African Culture Society',
         description: 'Celebrating African heritage through music, dance, food and cultural events.',
         category: 'Cultural',
-        status: 'ACTIVE',
-        memberCount: 210
+        status: 'ACTIVE'
       }
     }),
     prisma.club.upsert({
@@ -48,8 +45,7 @@ async function main() {
         name: 'Coding Bootcamp',
         description: 'Weekly coding sessions, hackathons and tech talks for all skill levels.',
         category: 'Technology',
-        status: 'ACTIVE',
-        memberCount: 89
+        status: 'ACTIVE'
       }
     }),
     prisma.club.upsert({
@@ -59,8 +55,7 @@ async function main() {
         name: 'Debate Society',
         description: 'Sharpen your public speaking and critical thinking through competitive debate.',
         category: 'Academic',
-        status: 'ACTIVE',
-        memberCount: 67
+        status: 'ACTIVE'
       }
     }),
     prisma.club.upsert({
@@ -70,8 +65,7 @@ async function main() {
         name: 'Drama Club',
         description: 'Acting, directing and stagecraft. We perform two major productions per year.',
         category: 'Arts',
-        status: 'ACTIVE',
-        memberCount: 43
+        status: 'ACTIVE'
       }
     }),
     prisma.club.upsert({
@@ -81,8 +75,7 @@ async function main() {
         name: 'Muslim Students Association',
         description: 'A community for Muslim students on campus. Weekly prayers, events and support.',
         category: 'Religious',
-        status: 'ACTIVE',
-        memberCount: 178
+        status: 'ACTIVE'
       }
     }),
     prisma.club.upsert({
@@ -92,8 +85,7 @@ async function main() {
         name: 'Entrepreneurship Club',
         description: 'Building the next generation of entrepreneurs through mentorship and pitch competitions.',
         category: 'Academic',
-        status: 'ACTIVE',
-        memberCount: 95
+        status: 'ACTIVE'
       }
     }),
   ])

@@ -1,4 +1,5 @@
 import { Request, Response } from 'express'
+import { ClubType } from '@prisma/client'
 import { prisma } from '../../config/prisma'
 import { sendSuccess, sendError } from '../../utils/response'
 import { AuthRequest } from '../../middleware/auth'
@@ -7,7 +8,7 @@ import { AuthRequest } from '../../middleware/auth'
 export const getClubs = async (req: Request, res: Response) => {
   try {
     const { category, search, type } = req.query
-    const typeFilter = type === 'CLUB' || type === 'SOCIETY' ? { type } : {}
+    const typeFilter = type === 'CLUB' || type === 'SOCIETY' ? { type: type as ClubType } : {}
 
     const clubs = await prisma.club.findMany({
       where: {
@@ -22,7 +23,7 @@ export const getClubs = async (req: Request, res: Response) => {
         } : {})
       },
       include: {
-        _count: { select: { memberships: true } }
+        _count: { select: { memberships: { where: { status: 'ACTIVE' } } } }
       },
       orderBy: { createdAt: 'desc' }
     })
@@ -52,7 +53,7 @@ export const getClubById = async (req: Request, res: Response) => {
           orderBy: { startsAt: 'asc' },
           take: 5
         },
-        _count: { select: { memberships: true } }
+        _count: { select: { memberships: { where: { status: 'ACTIVE' } } } }
       }
     })
 
@@ -144,14 +145,6 @@ export const updateMembership = async (req: AuthRequest, res: Response) => {
       data: { status }
     })
 
-    // Keep the member count right: only count a person when they become ACTIVE
-    // or stop being ACTIVE, never twice for the same change.
-    if (status === 'ACTIVE' && current.status !== 'ACTIVE') {
-      await prisma.club.update({ where: { id }, data: { memberCount: { increment: 1 } } })
-    } else if (status !== 'ACTIVE' && current.status === 'ACTIVE') {
-      await prisma.club.update({ where: { id }, data: { memberCount: { decrement: 1 } } })
-    }
-
     return sendSuccess(res, membership, `Membership ${String(status).toLowerCase()}`)
   } catch (error) {
     return sendError(res, 'Failed to update membership', 500, error)
@@ -174,5 +167,18 @@ export const getMyClub = async (req: AuthRequest, res: Response) => {
     return sendSuccess(res, { ...club, upcomingEvents })
   } catch (error) {
     return sendError(res, 'Failed to fetch your club', 500, error)
+  }
+}
+
+// GET /api/clubs/:id/membership: the signed-in user's status in this club
+export const getMembershipStatus = async (req: AuthRequest, res: Response) => {
+  try {
+    const m = await prisma.clubMembership.findUnique({
+      where: { userId_clubId: { userId: req.user!.id, clubId: req.params.id } },
+      select: { status: true }
+    })
+    return sendSuccess(res, { status: m?.status ?? null })
+  } catch (error) {
+    return sendError(res, 'Failed to check membership', 500, error)
   }
 }

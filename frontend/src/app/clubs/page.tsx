@@ -5,6 +5,7 @@ import MainLayout from "@/components/layout/MainLayout"
 import { Search, Users } from "lucide-react"
 import Link from "next/link"
 import { api } from "@/lib/api"
+import type { Club } from "@/lib/types"
 
 const categories = ["All", "Cultural", "Academic", "Arts", "Religious", "Sports", "Political", "Technology", "Social"]
 const types = [
@@ -14,11 +15,14 @@ const types = [
 ]
 
 export default function ClubsPage() {
-  const [clubs, setClubs] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
+  const [result, setResult] = useState<{ key: string; clubs: Club[] }>({ key: "", clubs: [] })
   const [search, setSearch] = useState("")
   const [category, setCategory] = useState("All")
   const [type, setType] = useState("")
+
+  const key = JSON.stringify([search, category, type])
+  const clubs = result.clubs
+  const loading = result.key !== key
 
   useEffect(() => {
     const params: { search?: string; category?: string; type?: string } = {}
@@ -26,12 +30,13 @@ export default function ClubsPage() {
     if (category !== "All") params.category = category
     if (type) params.type = type
 
-    setLoading(true)
     api.getClubs(params)
-      .then(res => setClubs(res.data))
-      .catch(err => console.error("Failed to fetch clubs:", err))
-      .finally(() => setLoading(false))
-  }, [search, category, type])
+      .then(res => setResult({ key, clubs: res.data }))
+      .catch(err => {
+        console.error("Failed to fetch clubs:", err)
+        setResult({ key, clubs: [] })
+      })
+  }, [search, category, type, key])
 
   const pill = (active: boolean): React.CSSProperties => ({
     padding: "6px 14px", borderRadius: 99, fontSize: 12, fontWeight: 500,
@@ -96,7 +101,7 @@ export default function ClubsPage() {
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 14, borderTop: "1px solid #F3F4F6" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 5, color: "#9CA3AF" }}>
                         <Users size={12} />
-                        <span style={{ fontSize: 11 }}>{club.memberCount || club._count?.memberships || 0} members</span>
+                        <span style={{ fontSize: 11 }}>{club._count?.memberships ?? 0} members</span>
                       </div>
                       <span style={{ fontSize: 12, fontWeight: 500, color: "#0B1D3A" }}>View →</span>
                     </div>

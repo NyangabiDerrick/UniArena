@@ -5,11 +5,12 @@ import MainLayout from "@/components/layout/MainLayout"
 import { ArrowLeft, Calendar, Clock, User } from "lucide-react"
 import Link from "next/link"
 import { api } from "@/lib/api"
+import type { Article } from "@/lib/types"
 
 
 export default function ArticlePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
-  const [article, setArticle] = useState<any>(null)
+  const [article, setArticle] = useState<Article | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -19,14 +20,14 @@ export default function ArticlePage({ params }: { params: Promise<{ id: string }
       .finally(() => setLoading(false))
   }, [id])
 
-  const getCategory = (a: any) => {
+  const getCategory = (a: Article) => {
     if (a?.team) return "Sports"
     if (a?.club) return "Clubs"
     if (a?.isUniversityWide) return "University"
     return "General"
   }
 
-  const getSource = (a: any) => {
+  const getSource = (a: Article) => {
     if (a?.club?.name) return a.club.name
     if (a?.team?.name) return a.team.name
     return "UniArena"
@@ -169,12 +170,12 @@ export default function ArticlePage({ params }: { params: Promise<{ id: string }
             </div>
 
             {/* Tags */}
-            {article.tags?.length > 0 && (
+            {(article.tags?.length ?? 0) > 0 && (
               <div style={{
                 display: "flex", flexWrap: "wrap", gap: 8,
                 marginTop: 36, paddingTop: 24, borderTop: "1px solid #E4E2DC"
               }}>
-                {article.tags.map((tag: string) => (
+                {(article.tags ?? []).map((tag: string) => (
                   <span key={tag} style={{
                     fontSize: 11, padding: "4px 12px", borderRadius: 99,
                     background: "#F1F5F9", color: "#475569", fontWeight: 500

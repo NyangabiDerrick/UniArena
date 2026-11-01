@@ -6,16 +6,27 @@ import { useSession } from "next-auth/react"
 import { Users, Calendar, FileText, ArrowLeft, CheckCircle, MapPin } from "lucide-react"
 import Link from "next/link"
 import { api } from "@/lib/api"
+import { errorMessage } from "@/lib/types"
+import type { Club, Committee, Event, Membership } from "@/lib/types"
 
 const tabs = ["About", "Events", "News", "Members", "Committee"]
 
+const emptyState = (icon: React.ReactNode, text: string) => (
+  <div style={{ textAlign: "center", padding: "40px 0" }}>
+    <div style={{ marginBottom: 12 }}>{icon}</div>
+    <p style={{ fontSize: 14, color: "#6B6962" }}>{text}</p>
+  </div>
+)
+
 export default function ClubProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
-  const { data: session } = useSession()
-  const [club, setClub] = useState<any>(null)
+  const { data: session, status } = useSession()
+  const [club, setClub] = useState<Club | null>(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState("About")
-  const [joined, setJoined] = useState(false)
+  const [membership, setMembership] = useState<string | null | undefined>(undefined)
+  const [joining, setJoining] = useState(false)
+  const [joinError, setJoinError] = useState("")
 
   useEffect(() => {
     api.getClub(id)
@@ -24,127 +35,95 @@ export default function ClubProfilePage({ params }: { params: Promise<{ id: stri
       .finally(() => setLoading(false))
   }, [id])
 
+  useEffect(() => {
+    if (status !== "authenticated" || session?.user?.role !== "STUDENT") return
+    api.getMembershipStatus(id)
+      .then(res => setMembership(res.data.status))
+      .catch(() => setMembership(null))
+  }, [id, status, session?.user?.role])
+
+  const join = async () => {
+    setJoining(true)
+    setJoinError("")
+    try {
+      await api.joinClub(id)
+      setMembership("PENDING")
+    } catch (err) {
+      setJoinError(errorMessage(err))
+    } finally {
+      setJoining(false)
+    }
+  }
+
   if (loading) {
-    return (
-      <MainLayout>
-        <div style={{ textAlign: "center", padding: "80px 0" }}>
-          <p style={{ fontSize: 14, color: "#9CA3AF" }}>Loading club...</p>
-        </div>
-      </MainLayout>
-    )
+    return <MainLayout><p style={{ textAlign: "center", padding: "80px 0", fontSize: 14, color: "#9CA3AF" }}>Loading...</p></MainLayout>
   }
 
   if (!club) {
     return (
       <MainLayout>
         <div style={{ textAlign: "center", padding: "80px 0" }}>
-          <p style={{ fontSize: 32, marginBottom: 12 }}>🏛️</p>
-          <p style={{ fontSize: 14, color: "#6B6962" }}>Club not found</p>
-          <Link href="/clubs" style={{ fontSize: 13, color: "#0B1D3A", textDecoration: "underline", marginTop: 12, display: "inline-block" }}>
-            Back to Clubs
-          </Link>
+          <p style={{ fontSize: 14, color: "#6B6962", marginBottom: 12 }}>Not found</p>
+          <Link href="/clubs" style={{ fontSize: 13, color: "#0B1D3A", textDecoration: "underline" }}>Back to Clubs</Link>
         </div>
       </MainLayout>
+    )
+  }
+
+  const joinButton = () => {
+    if (session?.user?.role !== "STUDENT" || membership === undefined) return null
+    const base: React.CSSProperties = {
+      display: "flex", alignItems: "center", gap: 8, padding: "10px 20px", borderRadius: 10,
+      border: "none", fontSize: 13, fontWeight: 600, fontFamily: "'Inter', sans-serif"
+    }
+    if (membership === "ACTIVE") return <span style={{ ...base, background: "#F0FDF4", color: "#15803D" }}><CheckCircle size={15} /> Member</span>
+    if (membership === "PENDING") return <span style={{ ...base, background: "#FFFBEB", color: "#B45309" }}>Request pending</span>
+    if (membership === "REJECTED") return <span style={{ ...base, background: "#FEF2F2", color: "#DC2626" }}>Request declined</span>
+    if (membership === "BANNED") return null
+    return (
+      <button onClick={join} disabled={joining} style={{ ...base, background: joining ? "#8A9BC0" : "#0B1D3A", color: "white", cursor: joining ? "not-allowed" : "pointer" }}>
+        {joining ? "Sending..." : `Join ${club.type === "SOCIETY" ? "Society" : "Club"}`}
+      </button>
     )
   }
 
   return (
     <MainLayout>
       <div style={{ maxWidth: 900, margin: "0 auto" }}>
-
-        {/* Back */}
-        <Link href="/clubs" style={{
-          display: "inline-flex", alignItems: "center", gap: 6,
-          fontSize: 13, color: "#6B6962", textDecoration: "none", marginBottom: 20
-        }}>
+        <Link href="/clubs" style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, color: "#6B6962", textDecoration: "none", marginBottom: 20 }}>
           <ArrowLeft size={15} /> Back to Clubs
         </Link>
 
-        {/* Banner */}
-        <div style={{
-          background: "linear-gradient(135deg, #2563EB, #1D4ED8)",
-          borderRadius: 16, height: 180, marginBottom: 0,
-          position: "relative"
-        }} />
+        <div style={{ background: "linear-gradient(135deg, #2563EB, #1D4ED8)", borderRadius: "16px 16px 0 0", height: 170 }} />
 
-        {/* Club Header Card */}
-        <div style={{
-          background: "white", borderRadius: "0 0 16px 16px",
-          padding: "0 28px 24px",
-          border: "1px solid #E4E2DC",
-          borderTop: "none",
-          marginBottom: 20
-        }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+        <div style={{ background: "white", borderRadius: "0 0 16px 16px", padding: "0 28px 24px", border: "1px solid #E4E2DC", borderTop: "none", marginBottom: 20 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 16 }}>
             <div style={{ display: "flex", alignItems: "flex-end", gap: 18 }}>
-              {/* Logo */}
-              <div style={{
-                width: 72, height: 72, borderRadius: 16,
-                background: "#EFF6FF", color: "#1D4ED8",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontFamily: "'Playfair Display', serif", fontWeight: 700,
-                fontSize: 28, border: "4px solid white",
-                marginTop: -36, flexShrink: 0,
-                boxShadow: "0 4px 12px rgba(11,29,58,0.12)"
-              }}>
+              <div style={{ width: 72, height: 72, borderRadius: 16, background: "#EFF6FF", color: "#1D4ED8", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: 28, border: "4px solid white", marginTop: -36, flexShrink: 0, boxShadow: "0 4px 12px rgba(11,29,58,0.12)" }}>
                 {club.name.charAt(0)}
               </div>
-
               <div style={{ paddingBottom: 4 }}>
-                <h1 style={{
-                  fontFamily: "'Playfair Display', serif",
-                  fontSize: 24, fontWeight: 700, color: "#0B1D3A", marginBottom: 6
-                }}>{club.name}</h1>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 12, fontSize: 13, color: "#9CA3AF" }}>
-                  <span style={{
-                    fontSize: 11, padding: "3px 10px", borderRadius: 99,
-                    background: "#F1F5F9", color: "#475569", fontWeight: 500
-                  }}>{club.category}</span>
-                  <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                    <Users size={13} />
-                    {club.memberCount || club._count?.memberships || 0} members
-                  </div>
-                  {club.foundedAt && (
-                    <span>Founded {new Date(club.foundedAt).getFullYear()}</span>
-                  )}
+                <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: 24, fontWeight: 700, color: "#0B1D3A", marginBottom: 6 }}>{club.name}</h1>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 12, fontSize: 13, color: "#9CA3AF", alignItems: "center" }}>
+                  <span style={{ fontSize: 11, padding: "3px 10px", borderRadius: 99, background: club.type === "SOCIETY" ? "#F5F3FF" : "#EFF6FF", color: club.type === "SOCIETY" ? "#6D28D9" : "#1D4ED8", fontWeight: 500 }}>
+                    {club.type === "SOCIETY" ? "Society" : "Club"}
+                  </span>
+                  <span style={{ fontSize: 11, padding: "3px 10px", borderRadius: 99, background: "#F1F5F9", color: "#475569", fontWeight: 500 }}>{club.category}</span>
+                  <span style={{ display: "flex", alignItems: "center", gap: 4 }}><Users size={13} />{club._count?.memberships ?? 0} members</span>
                 </div>
               </div>
             </div>
-
-            {/* Join Button */}
-            {session?.user?.role === "STUDENT" && (
-              <button
-                onClick={() => {
-                  api.joinClub(club.id).catch(() => {})
-                  setJoined(true)
-                }}
-                disabled={joined}
-                style={{
-                  display: "flex", alignItems: "center", gap: 8,
-                  padding: "10px 20px", borderRadius: 10, border: "none",
-                  cursor: joined ? "not-allowed" : "pointer",
-                  background: joined ? "#F0FDF4" : "#0B1D3A",
-                  color: joined ? "#15803D" : "white",
-                  fontSize: 13, fontWeight: 600,
-                  fontFamily: "'Inter', sans-serif",
-                  transition: "all 0.2s"
-                }}
-              >
-                {joined ? <><CheckCircle size={15} /> Request Sent</> : "Join Club"}
-              </button>
-            )}
+            <div style={{ textAlign: "right" }}>
+              {joinButton()}
+              {joinError && <p style={{ fontSize: 12, color: "#DC2626", marginTop: 8 }}>{joinError}</p>}
+            </div>
           </div>
         </div>
 
-        {/* Tabs */}
-        <div style={{
-          display: "flex", gap: 4, background: "#F3F4F6",
-          padding: 4, borderRadius: 10, width: "fit-content", marginBottom: 20
-        }}>
+        <div style={{ display: "flex", gap: 4, background: "#F3F4F6", padding: 4, borderRadius: 10, width: "fit-content", marginBottom: 20 }}>
           {tabs.map(tab => (
             <button key={tab} onClick={() => setActiveTab(tab)} style={{
-              padding: "8px 18px", borderRadius: 8, fontSize: 13, fontWeight: 500,
-              border: "none", cursor: "pointer",
+              padding: "8px 18px", borderRadius: 8, fontSize: 13, fontWeight: 500, border: "none", cursor: "pointer",
               background: activeTab === tab ? "white" : "transparent",
               color: activeTab === tab ? "#0B1D3A" : "#6B6962",
               boxShadow: activeTab === tab ? "0 1px 4px rgba(0,0,0,0.08)" : "none",
@@ -153,118 +132,60 @@ export default function ClubProfilePage({ params }: { params: Promise<{ id: stri
           ))}
         </div>
 
-        {/* Tab Content */}
-        <div style={{
-          background: "white", borderRadius: 16, padding: "28px 32px",
-          border: "1px solid #E4E2DC"
-        }}>
+        <div style={{ background: "white", borderRadius: 16, padding: "28px 32px", border: "1px solid #E4E2DC" }}>
 
-          {/* About */}
           {activeTab === "About" && (
             <div>
-              <h2 style={{
-                fontFamily: "'Playfair Display', serif",
-                fontSize: 18, color: "#0B1D3A", marginBottom: 16
-              }}>About {club.name}</h2>
-              {club.description ? (
-                club.description.split("\n\n").map((para: string, i: number) => (
-                  <p key={i} style={{
-                    fontSize: 14, color: "#374151", lineHeight: 1.8,
-                    marginBottom: 16
-                  }}>{para}</p>
-                ))
-              ) : (
-                <p style={{ fontSize: 14, color: "#6B6962" }}>No description available.</p>
-              )}
+              <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, color: "#0B1D3A", marginBottom: 16 }}>About {club.name}</h2>
+              {(club.description || "No description yet.").split("\n\n").map((p: string, i: number) => (
+                <p key={i} style={{ fontSize: 14, color: "#374151", lineHeight: 1.8, marginBottom: 16 }}>{p}</p>
+              ))}
             </div>
           )}
 
-          {/* Events */}
           {activeTab === "Events" && (
             <div>
-              <h2 style={{
-                fontFamily: "'Playfair Display', serif",
-                fontSize: 18, color: "#0B1D3A", marginBottom: 20
-              }}>Upcoming Events</h2>
-              {club.events?.length > 0 ? (
+              <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, color: "#0B1D3A", marginBottom: 20 }}>Upcoming events</h2>
+              {(club.events?.length ?? 0) > 0 ? (
                 <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                  {club.events.map((event: any) => (
-                    <Link key={event.id} href={`/events/${event.id}`} style={{ textDecoration: "none" }}>
-                      <div style={{
-                        display: "flex", alignItems: "center", gap: 16,
-                        padding: "16px 20px", borderRadius: 12,
-                        border: "1px solid #E4E2DC",
-                        transition: "background 0.15s"
-                      }}
-                        onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "#F9FAFB"}
-                        onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = "white"}
-                      >
-                        <div style={{
-                          width: 42, height: 42, borderRadius: 10, flexShrink: 0,
-                          background: "#EFF6FF",
-                          display: "flex", alignItems: "center", justifyContent: "center"
-                        }}>
+                  {(club.events ?? []).map((ev: Event) => (
+                    <Link key={ev.id} href={`/events/${ev.id}`} style={{ textDecoration: "none" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 16, padding: "16px 20px", borderRadius: 12, border: "1px solid #E4E2DC" }}>
+                        <div style={{ width: 42, height: 42, borderRadius: 10, flexShrink: 0, background: "#EFF6FF", display: "flex", alignItems: "center", justifyContent: "center" }}>
                           <Calendar size={18} color="#1D4ED8" />
                         </div>
                         <div>
-                          <p style={{ fontSize: 14, fontWeight: 500, color: "#0B1D3A", marginBottom: 4 }}>
-                            {event.title}
+                          <p style={{ fontSize: 14, fontWeight: 500, color: "#0B1D3A", marginBottom: 4 }}>{ev.title}</p>
+                          <p style={{ fontSize: 12, color: "#9CA3AF", display: "flex", gap: 12 }}>
+                            <span>{new Date(ev.startsAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}</span>
+                            <span style={{ display: "flex", alignItems: "center", gap: 4 }}><MapPin size={11} />{ev.venue}</span>
                           </p>
-                          <div style={{ display: "flex", gap: 12, fontSize: 12, color: "#9CA3AF" }}>
-                            <span>{new Date(event.startsAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
-                            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                              <MapPin size={11} /> {event.venue}
-                            </div>
-                          </div>
                         </div>
                       </div>
                     </Link>
                   ))}
                 </div>
-              ) : (
-                <div style={{ textAlign: "center", padding: "40px 0" }}>
-                  <Calendar size={32} color="#E4E2DC" style={{ margin: "0 auto 12px" }} />
-                  <p style={{ fontSize: 14, color: "#6B6962" }}>No upcoming events</p>
-                </div>
-              )}
+              ) : emptyState(<Calendar size={32} color="#E4E2DC" style={{ margin: "0 auto" }} />, "No upcoming events")}
             </div>
           )}
 
-          {/* News */}
           {activeTab === "News" && (
             <div>
-              <h2 style={{
-                fontFamily: "'Playfair Display', serif",
-                fontSize: 18, color: "#0B1D3A", marginBottom: 20
-              }}>Recent News</h2>
-              <div style={{ textAlign: "center", padding: "40px 0" }}>
-                <FileText size={32} color="#E4E2DC" style={{ margin: "0 auto 12px" }} />
-                <p style={{ fontSize: 14, color: "#6B6962" }}>No articles yet</p>
-              </div>
+              <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, color: "#0B1D3A", marginBottom: 20 }}>Recent news</h2>
+              {emptyState(<FileText size={32} color="#E4E2DC" style={{ margin: "0 auto" }} />, "No articles yet")}
             </div>
           )}
 
-          {/* Members */}
           {activeTab === "Members" && (
             <div>
-              <h2 style={{
-                fontFamily: "'Playfair Display', serif",
-                fontSize: 18, color: "#0B1D3A", marginBottom: 16
-              }}>Members</h2>
-              {club.memberships?.length > 0 ? (
+              <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, color: "#0B1D3A", marginBottom: 16 }}>Members</h2>
+              {(club.memberships?.length ?? 0) > 0 ? (
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                  {club.memberships.map((m: any) => (
-                    <div key={m.id || m.user?.email} style={{
-                      display: "flex", alignItems: "center", gap: 12,
-                      padding: "12px 16px", borderRadius: 10,
-                      border: "1px solid #F3F4F6"
-                    }}>
-                      <div style={{
-                        width: 36, height: 36, borderRadius: 8, flexShrink: 0,
-                        background: "#EFF6FF", color: "#1D4ED8",
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        fontWeight: 700, fontSize: 13
-                      }}>{m.user?.name?.charAt(0) || "?"}</div>
+                  {(club.memberships ?? []).map((m: Membership) => (
+                    <div key={m.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", borderRadius: 10, border: "1px solid #F3F4F6" }}>
+                      <div style={{ width: 36, height: 36, borderRadius: 8, flexShrink: 0, background: "#EFF6FF", color: "#1D4ED8", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 13 }}>
+                        {m.user?.name?.charAt(0) || "?"}
+                      </div>
                       <div>
                         <p style={{ fontSize: 13, fontWeight: 500, color: "#0B1D3A" }}>{m.user?.name}</p>
                         <p style={{ fontSize: 11, color: "#9CA3AF" }}>{m.user?.faculty}</p>
@@ -272,35 +193,20 @@ export default function ClubProfilePage({ params }: { params: Promise<{ id: stri
                     </div>
                   ))}
                 </div>
-              ) : (
-                <p style={{ fontSize: 14, color: "#6B6962" }}>
-                  This club has {club.memberCount || 0} members. Member list is visible to members only.
-                </p>
-              )}
+              ) : <p style={{ fontSize: 14, color: "#6B6962" }}>No members yet.</p>}
             </div>
           )}
 
-          {/* Committee */}
           {activeTab === "Committee" && (
             <div>
-              <h2 style={{
-                fontFamily: "'Playfair Display', serif",
-                fontSize: 18, color: "#0B1D3A", marginBottom: 20
-              }}>Committee</h2>
-              {club.committees?.length > 0 ? (
+              <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, color: "#0B1D3A", marginBottom: 20 }}>Committee</h2>
+              {(club.committees?.length ?? 0) > 0 ? (
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                  {club.committees.map((c: any) => (
-                    <div key={c.id} style={{
-                      display: "flex", alignItems: "center", gap: 14,
-                      padding: "14px 18px", borderRadius: 12,
-                      border: "1px solid #E4E2DC"
-                    }}>
-                      <div style={{
-                        width: 40, height: 40, borderRadius: 10, flexShrink: 0,
-                        background: "#0B1D3A", color: "#C9A84C",
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        fontWeight: 700, fontSize: 15
-                      }}>{c.user?.name?.charAt(0) || "?"}</div>
+                  {(club.committees ?? []).map((c: Committee) => (
+                    <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 18px", borderRadius: 12, border: "1px solid #E4E2DC" }}>
+                      <div style={{ width: 40, height: 40, borderRadius: 10, flexShrink: 0, background: "#0B1D3A", color: "#C9A84C", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 15 }}>
+                        {c.user?.name?.charAt(0) || "?"}
+                      </div>
                       <div>
                         <p style={{ fontSize: 14, fontWeight: 600, color: "#0B1D3A" }}>{c.user?.name}</p>
                         <p style={{ fontSize: 12, color: "#9CA3AF" }}>{c.role}</p>
@@ -308,9 +214,7 @@ export default function ClubProfilePage({ params }: { params: Promise<{ id: stri
                     </div>
                   ))}
                 </div>
-              ) : (
-                <p style={{ fontSize: 14, color: "#6B6962" }}>No committee members assigned yet.</p>
-              )}
+              ) : <p style={{ fontSize: 14, color: "#6B6962" }}>No committee assigned yet.</p>}
             </div>
           )}
 

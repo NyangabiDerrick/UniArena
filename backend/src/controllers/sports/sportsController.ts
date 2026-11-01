@@ -30,7 +30,27 @@ export const getTeams = async (req: Request, res: Response) => {
       orderBy: { createdAt: 'desc' }
     })
 
-    return sendSuccess(res, teams)
+    // W/L/D record from each team's completed fixtures
+    const completed = await prisma.fixture.findMany({
+      where: { teamId: { in: teams.map(t => t.id) }, status: 'COMPLETED' },
+      select: { teamId: true, isHome: true, homeScore: true, awayScore: true }
+    })
+    const records = new Map<string, { wins: number; losses: number; draws: number }>()
+    for (const f of completed) {
+      const r = records.get(f.teamId) ?? { wins: 0, losses: 0, draws: 0 }
+      const scored = (f.isHome ? f.homeScore : f.awayScore) ?? 0
+      const conceded = (f.isHome ? f.awayScore : f.homeScore) ?? 0
+      if (scored > conceded) r.wins++
+      else if (scored < conceded) r.losses++
+      else r.draws++
+      records.set(f.teamId, r)
+    }
+
+    return sendSuccess(res, teams.map(t => ({
+      ...t,
+      memberCount: t._count.squadMembers,
+      ...(records.get(t.id) ?? { wins: 0, losses: 0, draws: 0 })
+    })))
   } catch (error) {
     return sendError(res, 'Failed to fetch teams', 500, error)
   }

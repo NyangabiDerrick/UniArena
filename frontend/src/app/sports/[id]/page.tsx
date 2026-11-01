@@ -5,6 +5,7 @@ import Link from "next/link"
 import MainLayout from "@/components/layout/MainLayout"
 import { ArrowLeft, Calendar, MapPin, Users, Trophy } from "lucide-react"
 import { api } from "@/lib/api"
+import type { Fixture, SquadMember, Team } from "@/lib/types"
 
 const tabs = ["Fixtures", "Results", "Squad", "Training"]
 
@@ -25,7 +26,7 @@ const fmtTime = (d: string) =>
 
 export default function SportTeamPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
-  const [team, setTeam] = useState<any>(null)
+  const [team, setTeam] = useState<Team | null>(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState("Fixtures")
 
@@ -55,16 +56,16 @@ export default function SportTeamPage({ params }: { params: Promise<{ id: string
     )
   }
 
-  const fixtures: any[] = team.fixtures || []
+  const fixtures: Fixture[] = team.fixtures || []
   const upcoming = fixtures.filter(f => f.status === "UPCOMING" || f.status === "LIVE")
   const completed = fixtures
     .filter(f => f.status === "COMPLETED")
     .sort((a, b) => new Date(b.scheduledAt).getTime() - new Date(a.scheduledAt).getTime())
-  const squad: any[] = team.squadMembers || []
+  const squad: SquadMember[] = team.squadMembers || []
 
-  const outcome = (f: any) => {
-    const scored = f.isHome ? f.homeScore : f.awayScore
-    const conceded = f.isHome ? f.awayScore : f.homeScore
+  const outcome = (f: Fixture) => {
+    const scored = (f.isHome ? f.homeScore : f.awayScore) ?? 0
+    const conceded = (f.isHome ? f.awayScore : f.homeScore) ?? 0
     if (scored > conceded) return { label: "W", bg: "#F0FDF4", color: "#15803D" }
     if (scored < conceded) return { label: "L", bg: "#FEF2F2", color: "#DC2626" }
     return { label: "D", bg: "#F3F4F6", color: "#6B7280" }

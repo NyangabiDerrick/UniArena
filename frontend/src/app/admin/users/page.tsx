@@ -1,9 +1,11 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect } from "react"
 import { useSession } from "next-auth/react"
 import { Search, Filter, X } from "lucide-react"
 import { api } from "@/lib/api"
+import { errorMessage } from "@/lib/types"
+import type { Club, Team, User } from "@/lib/types"
 
 const roleBadge: Record<string, { bg: string; text: string; label: string }> = {
   STUDENT: { bg: "#F1F5F9", text: "#475569", label: "Student" },
@@ -13,32 +15,26 @@ const roleBadge: Record<string, { bg: string; text: string; label: string }> = {
 
 export default function UsersPage() {
   const { data: session, status } = useSession()
-  const [users, setUsers] = useState<any[]>([])
-  const [clubs, setClubs] = useState<any[]>([])
-  const [teams, setTeams] = useState<any[]>([])
+  const [users, setUsers] = useState<User[]>([])
+  const [clubs, setClubs] = useState<Club[]>([])
+  const [teams, setTeams] = useState<Team[]>([])
   const [search, setSearch] = useState("")
   const [roleFilter, setRoleFilter] = useState("ALL")
   const [loading, setLoading] = useState(true)
   const [notice, setNotice] = useState("")
   const [error, setError] = useState("")
-  const [assigning, setAssigning] = useState<any>(null)
+  const [assigning, setAssigning] = useState<User | null>(null)
   const [choice, setChoice] = useState("")
 
-  const load = useCallback(async () => {
-    try {
-      const res = await api.getAdminUsers({ role: roleFilter, search })
-      setUsers(res.data)
-    } catch (err: any) {
-      setError(err.message)
-    } finally {
-      setLoading(false)
-    }
-  }, [roleFilter, search])
+  const [reloadKey, setReloadKey] = useState(0)
 
   useEffect(() => {
     if (status !== "authenticated") return
-    load()
-  }, [status, load])
+    api.getAdminUsers({ role: roleFilter, search })
+      .then(res => setUsers(res.data))
+      .catch(err => setError(errorMessage(err)))
+      .finally(() => setLoading(false))
+  }, [status, roleFilter, search, reloadKey])
 
   useEffect(() => {
     if (status !== "authenticated") return
@@ -46,25 +42,25 @@ export default function UsersPage() {
     api.getTeams().then(r => setTeams(r.data)).catch(() => {})
   }, [status])
 
-  const run = async (action: () => Promise<any>) => {
+  const run = async (action: () => Promise<{ message: string }>) => {
     setError("")
     setNotice("")
     try {
       const res = await action()
       setNotice(res.message)
-      await load()
-    } catch (err: any) {
-      setError(err.message)
+      setReloadKey(k => k + 1)
+    } catch (err) {
+      setError(errorMessage(err))
     }
   }
 
-  const toggleActive = (u: any) => run(() => api.updateUser(u.id, { isActive: !u.isActive }))
-  const removeLeader = (u: any) => run(() => api.assignLeader(u.id, { groupType: "NONE" }))
+  const toggleActive = (u: User) => run(() => api.updateUser(u.id, { isActive: !u.isActive }))
+  const removeLeader = (u: User) => run(() => api.assignLeader(u.id, { groupType: "NONE" }))
 
   const saveAssignment = async () => {
     if (!choice) return
     const [groupType, groupId] = choice.split(":")
-    await run(() => api.assignLeader(assigning.id, { groupType: groupType as "CLUB" | "TEAM", groupId }))
+    await run(() => api.assignLeader(assigning!.id, { groupType: groupType as "CLUB" | "TEAM", groupId }))
     setAssigning(null)
     setChoice("")
   }

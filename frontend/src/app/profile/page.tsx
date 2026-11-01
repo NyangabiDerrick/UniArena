@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { useSession } from "next-auth/react"
 import MainLayout from "@/components/layout/MainLayout"
 import { api } from "@/lib/api"
+import type { Membership, Profile } from "@/lib/types"
 
 const roleLabel: Record<string, string> = {
   STUDENT: "Student",
@@ -16,7 +17,7 @@ const roleLabel: Record<string, string> = {
 
 export default function ProfilePage() {
   const { data: session, status } = useSession()
-  const [profile, setProfile] = useState<any>(null)
+  const [profile, setProfile] = useState<Profile | null>(null)
 
   useEffect(() => {
     if (status !== "authenticated") return
@@ -82,11 +83,11 @@ export default function ProfilePage() {
 
           {memberships.length === 0 ? (
             <p style={{ fontSize: 14, color: "#6B6962" }}>
-              You haven't joined any clubs or societies yet.
+              You haven&apos;t joined any clubs or societies yet.
             </p>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {memberships.map((m: any) => (
+              {memberships.map((m: Membership) => (
                 <div key={m.id} style={{
                   padding: "12px 16px", borderRadius: 10,
                   border: "1px solid #F3F4F6", fontSize: 14, color: "#0B1D3A"

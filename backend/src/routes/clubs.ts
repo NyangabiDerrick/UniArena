@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import { body } from 'express-validator'
 import {
-  getClubs, getClubById, getMyClub, createClub,
+  getClubs, getClubById, getMyClub, getMembershipStatus, createClub,
   joinClub, getClubMembers, updateMembership
 } from '../controllers/clubs/clubsController'
 import { authenticate, requireRole, requireGroupManager, ROLES } from '../middleware/auth'
@@ -12,6 +12,7 @@ const router = Router()
 router.get('/', getClubs)
 router.get('/mine', authenticate, requireRole(ROLES.CLUB_LEADER), getMyClub)
 router.get('/:id', getClubById)
+router.get('/:id/membership', authenticate, getMembershipStatus)
 router.post('/',
   authenticate,
   requireRole(ROLES.STUDENT, ROLES.ADMIN),

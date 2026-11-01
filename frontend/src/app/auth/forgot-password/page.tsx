@@ -4,6 +4,7 @@ import { useState } from "react"
 import Link from "next/link"
 import AuthShell, { inputStyle, labelStyle, primaryButton, errorBox, successBox, linkStyle } from "@/components/layout/AuthShell"
 import { requestPasswordReset } from "@/lib/authApi"
+import { errorMessage } from "@/lib/types"
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("")
@@ -17,8 +18,8 @@ export default function ForgotPasswordPage() {
     setLoading(true)
     try {
       setMessage(await requestPasswordReset(email.trim()))
-    } catch (err: any) {
-      setError(err.message)
+    } catch (err) {
+      setError(errorMessage(err))
     } finally {
       setLoading(false)
     }
