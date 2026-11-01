@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { useSession } from "next-auth/react"
 import { Flag } from "lucide-react"
-import { getReports, decideReport, type Report } from "@/lib/adminReportsApi"
+import { getReports, decideReport, type Report, type ReportAction } from "@/lib/adminReportsApi"
 
 const reasonLabel: Record<string, string> = {
   SPAM: "Spam", HARASSMENT: "Harassment or abuse", INAPPROPRIATE: "Inappropriate content", OTHER: "Something else"
@@ -18,6 +18,7 @@ export default function ReportsPage() {
   const [reports, setReports] = useState<Report[]>([])
   const [loading, setLoading] = useState(true)
   const [notes, setNotes] = useState<Record<string, string>>({})
+  const [removeFlags, setRemoveFlags] = useState<Record<string, boolean>>({})
   const [notice, setNotice] = useState("")
   const [error, setError] = useState("")
   const [reloadKey, setReloadKey] = useState(0)
@@ -35,13 +36,25 @@ export default function ReportsPage() {
     load()
   }, [status, load, reloadKey])
 
-  const decide = async (r: Report, action: "DISMISS" | "RESOLVE" | "SUSPEND") => {
-    if (action === "SUSPEND" && !window.confirm(`Suspend ${r.reported.name}? They will be signed out and unable to sign in.`)) return
+  const decide = async (r: Report, action: ReportAction) => {
+    const note = (notes[r.id] || "").trim()
     setError("")
     setNotice("")
+
+    if (action === "WARN" && note.length < 5) {
+      setError("Write a note first. The person will see it in their warning.")
+      return
+    }
+    if (action === "SUSPEND" && !window.confirm(`Suspend ${r.reported.name}? They will be signed out and unable to sign in. They can appeal.`)) return
+
     try {
-      await decideReport(r.id, action, notes[r.id]?.trim())
-      setNotice(action === "DISMISS" ? "Report dismissed." : action === "SUSPEND" ? `${r.reported.name} was suspended.` : "Report resolved.")
+      await decideReport(r.id, action, note, r.targetType === "COMMENT" ? (removeFlags[r.id] ?? true) : false)
+      setNotice(
+        action === "DISMISS" ? "Report dismissed."
+        : action === "SUSPEND" ? `${r.reported.name} was suspended.`
+        : action === "WARN" ? `${r.reported.name} was warned.`
+        : "Report resolved."
+      )
       setReloadKey(k => k + 1)
     } catch (e) {
       setError(e instanceof Error ? e.message : "Action failed")
@@ -63,8 +76,8 @@ export default function ReportsPage() {
   return (
     <div style={{ maxWidth: 900, margin: "0 auto" }}>
       <div style={{ marginBottom: 24 }}>
-        <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: 28, fontWeight: 700, color: "#0B1D3A", marginBottom: 4 }}>Message reports</h1>
-        <p style={{ fontSize: 14, color: "#6B6962" }}>You see only the last few messages between the two people involved.</p>
+        <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: 28, fontWeight: 700, color: "#0B1D3A", marginBottom: 4 }}>Reports</h1>
+        <p style={{ fontSize: 14, color: "#6B6962" }}>You see only the reported content and the last few messages involved.</p>
       </div>
 
       {notice && <div style={{ padding: "10px 14px", borderRadius: 8, marginBottom: 16, background: "#F0FDF4", color: "#166534", border: "1px solid #BBF7D0", fontSize: 13 }}>{notice}</div>}
@@ -95,10 +108,26 @@ export default function ReportsPage() {
                   </p>
                   <p style={{ fontSize: 12, color: "#6B6962" }}>Reported by {r.reporter.name} · {when(r.createdAt)}</p>
                 </div>
-                <span style={{ alignSelf: "flex-start", fontSize: 11, padding: "4px 12px", borderRadius: 99, background: "#FFF7ED", color: "#C2410C", fontWeight: 500 }}>
-                  {reasonLabel[r.reason] || r.reason}
-                </span>
+                <div style={{ display: "flex", gap: 8, alignSelf: "flex-start", flexWrap: "wrap" }}>
+                  <span style={{ fontSize: 11, padding: "4px 12px", borderRadius: 99, background: "#EFF6FF", color: "#1D4ED8", fontWeight: 500 }}>
+                    {r.targetType === "COMMENT" ? "Comment" : "Message"}
+                  </span>
+                  <span style={{ fontSize: 11, padding: "4px 12px", borderRadius: 99, background: "#FFF7ED", color: "#C2410C", fontWeight: 500 }}>
+                    {reasonLabel[r.reason] || r.reason}
+                  </span>
+                </div>
               </div>
+
+              {r.warningCount > 0 && (
+                <p style={{
+                  fontSize: 12, fontWeight: 500, padding: "8px 12px", borderRadius: 8, marginBottom: 14,
+                  background: r.warningCount >= 3 ? "#FEF2F2" : "#FFFBEB",
+                  color: r.warningCount >= 3 ? "#991B1B" : "#92400E"
+                }}>
+                  {r.warningCount} previous warning{r.warningCount > 1 ? "s" : ""} for this person.
+                  {r.warningCount >= 3 ? " You may want to consider suspension." : ""}
+                </p>
+              )}
 
               {r.details && <p style={{ fontSize: 13, color: "#374151", background: "#F8F7F4", padding: "10px 14px", borderRadius: 8, marginBottom: 14, lineHeight: 1.6 }}>&ldquo;{r.details}&rdquo;</p>}
 
@@ -106,6 +135,7 @@ export default function ReportsPage() {
                 {r.evidence.map((m, i) => (
                   <div key={i} style={{ display: "flex", justifyContent: m.from === "reported" ? "flex-start" : "flex-end" }}>
                     <div style={{ maxWidth: "75%", padding: "8px 12px", borderRadius: 10, background: m.from === "reported" ? "#FEF2F2" : "white", border: "1px solid #E4E2DC" }}>
+                      {m.context && <p style={{ fontSize: 10, color: "#6B6962", marginBottom: 4, fontStyle: "italic" }}>{m.context}</p>}
                       <p style={{ fontSize: 10, color: "#9CA3AF", marginBottom: 2 }}>{m.from === "reported" ? r.reported.name : r.reporter.name} · {when(m.sentAt)}</p>
                       <p style={{ fontSize: 13, color: "#1A1916", whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{m.content}</p>
                     </div>
@@ -115,12 +145,24 @@ export default function ReportsPage() {
 
               {r.status === "OPEN" ? (
                 <>
-                  <input placeholder="Note for the record (optional)" value={notes[r.id] || ""} maxLength={500}
+                  <input placeholder="Note (required for a warning; the person sees it)" value={notes[r.id] || ""} maxLength={500}
                     onChange={e => setNotes(prev => ({ ...prev, [r.id]: e.target.value }))}
                     style={{ width: "100%", padding: "10px 12px", fontSize: 13, borderRadius: 8, border: "1.5px solid #E4E2DC", outline: "none", marginBottom: 12, fontFamily: "'Inter', sans-serif" }} />
+
+                  {r.targetType === "COMMENT" && (
+                    <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#374151", marginBottom: 14, cursor: "pointer" }}>
+                      <input type="checkbox" checked={removeFlags[r.id] ?? true}
+                        onChange={e => setRemoveFlags(prev => ({ ...prev, [r.id]: e.target.checked }))} />
+                      Also remove this comment from the article (when warning or resolving)
+                    </label>
+                  )}
+
                   <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                     <button onClick={() => decide(r, "DISMISS")} style={actionBtn("#F3F4F6", "#374151")}>Dismiss</button>
                     <button onClick={() => decide(r, "RESOLVE")} style={actionBtn("#0B1D3A", "white")}>Mark resolved</button>
+                    {r.reported.role !== "ADMIN" && (
+                      <button onClick={() => decide(r, "WARN")} style={actionBtn("#C9A84C", "#0B1D3A")}>Warn</button>
+                    )}
                     {isAdmin && r.reported.role !== "ADMIN" && r.reported.isActive && (
                       <button onClick={() => decide(r, "SUSPEND")} style={actionBtn("#DC2626", "white")}>Suspend account</button>
                     )}

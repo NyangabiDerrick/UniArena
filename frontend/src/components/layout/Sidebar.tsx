@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation"
 import { useSession } from "next-auth/react"
 import {
   LayoutDashboard, Users, Trophy, Calendar, Ticket,
-  Newspaper, Image, MessageSquare, Shield, Settings, Flag
+  Newspaper, Image, MessageSquare, Shield, Settings, Flag, Scale
 } from "lucide-react"
 
 const navItems = [
@@ -20,6 +20,7 @@ const navItems = [
   { label: "Messages", href: "/messages", icon: MessageSquare, roles: ["STUDENT","CLUB_LEADER","SPORTS_CAPTAIN","LECTURER","MODERATOR","ADMIN"] },
   { label: "Admin", href: "/admin", icon: Shield, roles: ["ADMIN","MODERATOR"] },
   { label: "Reports", href: "/admin/reports", icon: Flag, roles: ["ADMIN","MODERATOR"] },
+  { label: "Appeals", href: "/admin/appeals", icon: Scale, roles: ["ADMIN"] },
 ]
 
 export default function Sidebar() {
@@ -28,7 +29,7 @@ export default function Sidebar() {
   const userRole = session?.user?.role || "STUDENT"
   const visible = navItems.filter(i => i.roles.includes(userRole))
 
-  // The most specific matching item is the active one (so Admin and Reports don't both light up)
+  // The most specific matching item is the active one
   const activeHref = visible
     .filter(i => pathname === i.href || pathname.startsWith(i.href + "/"))
     .sort((a, b) => b.href.length - a.href.length)[0]?.href
