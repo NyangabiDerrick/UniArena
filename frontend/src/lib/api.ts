@@ -35,6 +35,8 @@ export const api = {
   },
   getClub: (id: string) => request<any>(`/api/clubs/${id}`),
   getMyClub: () => request<any>("/api/clubs/mine"),
+  getMembershipStatus: (id: string) => request<{ status: string | null }>(`/api/clubs/${id}/membership`),
+  getDashboard: () => request<any>("/api/users/dashboard"),
   createClub: (data: any) => request<any>("/api/clubs", { method: "POST", body: JSON.stringify(data) }),
   joinClub: (id: string) => request<any>(`/api/clubs/${id}/join`, { method: "POST" }),
   getClubMembers: (id: string) => request<any[]>(`/api/clubs/${id}/members`),
@@ -91,4 +93,6 @@ export const api = {
 
   // Users
   getProfile: () => request<any>("/api/users/profile"),
+  getMembershipStatus: (id: string) => request<{ status: string | null }>(`/api/clubs/${id}/membership`),
+  getDashboard: () => request<any>("/api/users/dashboard"),
 }
