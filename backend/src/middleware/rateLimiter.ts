@@ -1,8 +1,8 @@
 import rateLimit from 'express-rate-limit'
 
 export const generalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
+  windowMs: 60 * 1000,
+  max: process.env.NODE_ENV === 'production' ? 300 : 3000,
   message: {
     success: false,
     message: 'Too many requests — please try again later'
