@@ -95,6 +95,8 @@ export default function EventsPage() {
             const sold = eventSold(event)
             const spotsLeft = capacity - sold
             const pct = capacity ? Math.round((sold / capacity) * 100) : 0
+            const ended = !!event.endsAt && new Date(event.endsAt) < new Date()
+            const unavailable = ended || spotsLeft === 0 || !event.isFree
             const cat = catColors[eventCategory(event)] || { bg: "#F1F5F9", text: "#475569" }
             return (
               <Link key={event.id} href={`/events/${event.id}`} style={{ textDecoration: "none" }}>
@@ -121,6 +123,7 @@ export default function EventsPage() {
                         <span style={{ fontSize: 11, padding: "3px 10px", borderRadius: 99, fontWeight: 500, background: cat.bg, color: cat.text }}>
                           {eventCategory(event)}
                         </span>
+                        {ended && <span style={{ fontSize: 11, padding: "3px 10px", borderRadius: 99, fontWeight: 500, background: "#F3F4F6", color: "#6B7280" }}>Ended</span>}
                         {event.isFree && <span style={{ fontSize: 11, padding: "3px 10px", borderRadius: 99, fontWeight: 500, background: "#F0FDF4", color: "#15803D" }}>Free</span>}
                         {spotsLeft === 0 && <span style={{ fontSize: 11, padding: "3px 10px", borderRadius: 99, fontWeight: 500, background: "#FEF2F2", color: "#DC2626" }}>Sold Out</span>}
                       </div>
@@ -154,10 +157,10 @@ export default function EventsPage() {
                       </p>
                       <span style={{
                         fontSize: 12, fontWeight: 600, padding: "8px 18px", borderRadius: 8,
-                        background: spotsLeft === 0 ? "#F3F4F6" : "#0B1D3A",
-                        color: spotsLeft === 0 ? "#9CA3AF" : "white"
+                        background: unavailable ? "#F3F4F6" : "#0B1D3A",
+                        color: unavailable ? "#9CA3AF" : "white"
                       }}>
-                        {spotsLeft === 0 ? "Sold Out" : event.isFree ? "RSVP" : "Get Ticket"}
+                        {ended ? "Ended" : spotsLeft === 0 ? "Sold Out" : event.isFree ? "RSVP" : "Payments soon"}
                       </span>
                     </div>
                   </div>

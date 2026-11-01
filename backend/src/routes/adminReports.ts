@@ -12,8 +12,9 @@ router.use(requireRole(ROLES.ADMIN, ROLES.MODERATOR))
 router.get('/', listReports)
 router.put('/:id',
   [
-    body('action').isIn(['DISMISS', 'RESOLVE', 'SUSPEND']),
-    body('note').optional({ nullable: true }).isString().isLength({ max: 500 })
+    body('action').isIn(['DISMISS', 'RESOLVE', 'WARN', 'SUSPEND']),
+    body('note').optional({ nullable: true }).isString().isLength({ max: 500 }),
+    body('removeContent').optional({ nullable: true }).isBoolean()
   ],
   validate,
   decideReport

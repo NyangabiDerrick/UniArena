@@ -8,7 +8,10 @@ import { AuthRequest } from '../../middleware/auth'
 export const getClubs = async (req: Request, res: Response) => {
   try {
     const { category, search, type } = req.query
-    const typeFilter = type === 'CLUB' || type === 'SOCIETY' ? { type: type as ClubType } : {}
+    if (type && type !== 'CLUB' && type !== 'SOCIETY') {
+      return sendError(res, 'type must be CLUB or SOCIETY', 400)
+    }
+    const typeFilter = type ? { type: type as ClubType } : {}
 
     const clubs = await prisma.club.findMany({
       where: {

@@ -13,6 +13,8 @@ export default function LoginPage() {
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
 
+  const suspended = error.toLowerCase().includes("suspended")
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
@@ -28,7 +30,16 @@ export default function LoginPage() {
 
   return (
     <AuthShell title="Welcome back" subtitle="Sign in with your university email to continue">
-      {error && <div style={errorBox}>{error}</div>}
+      {error && (
+        <div style={errorBox}>
+          {error}
+          {suspended && (
+            <div style={{ marginTop: 8 }}>
+              <Link href="/auth/appeal" style={linkStyle}>Appeal this decision</Link>
+            </div>
+          )}
+        </div>
+      )}
 
       <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         <div>

@@ -1,12 +1,12 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { signOut, useSession } from "next-auth/react"
 import { usePathname } from "next/navigation"
 import { Bell, LogOut, User, MessageSquare } from "lucide-react"
 import Link from "next/link"
-import { getNotifications } from "@/lib/notificationsApi"
-import { getUnreadMessages } from "@/lib/messagesApi"
+import { getCounts } from "@/lib/countsApi"
+import { usePolling } from "@/lib/usePolling"
 
 const badge: React.CSSProperties = {
   position: "absolute", top: 3, right: 1, minWidth: 16, height: 16, padding: "0 4px",
@@ -20,17 +20,20 @@ export default function Navbar() {
   const [unread, setUnread] = useState(0)
   const [unreadMessages, setUnreadMessages] = useState(0)
 
-  // Refresh counts when you change page, and every 20 seconds
+  const refresh = useCallback(() => {
+    getCounts()
+      .then(c => {
+        setUnread(c.notifications)
+        setUnreadMessages(c.messages)
+      })
+      .catch(() => {})
+  }, [])
+
+  // Refresh when you open a page, then every 30 seconds while the tab is visible
   useEffect(() => {
-    if (status !== "authenticated") return
-    const refresh = () => {
-      getNotifications().then(d => setUnread(d.unreadCount)).catch(() => {})
-      getUnreadMessages().then(d => setUnreadMessages(d.count)).catch(() => {})
-    }
-    refresh()
-    const timer = setInterval(refresh, 20000)
-    return () => clearInterval(timer)
-  }, [status, pathname])
+    if (status === "authenticated") refresh()
+  }, [status, pathname, refresh])
+  usePolling(refresh, 30000, status === "authenticated")
 
   const iconLink: React.CSSProperties = {
     display: "flex", alignItems: "center", justifyContent: "center",

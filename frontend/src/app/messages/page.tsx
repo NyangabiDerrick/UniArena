@@ -9,6 +9,7 @@ import {
   getBlocks, blockUser, unblockUser, reportUser,
   type Conversation, type Partner, type ChatMessage, type ReportReason
 } from "@/lib/messagesApi"
+import { usePolling } from "@/lib/usePolling"
 
 const REASONS: { value: ReportReason; label: string }[] = [
   { value: "SPAM", label: "Spam" },
@@ -62,30 +63,36 @@ export default function MessagesPage() {
     getBlocks().then(setBlocked).catch(() => {})
   }, [])
 
+  // Conversation list: load once, then every 15 seconds while the tab is visible
   useEffect(() => {
-    if (status !== "authenticated") return
-    refreshConversations()
-    const timer = setInterval(refreshConversations, 8000)
-    return () => clearInterval(timer)
+    if (status === "authenticated") refreshConversations()
   }, [status, refreshConversations])
+  usePolling(refreshConversations, 15000, status === "authenticated")
 
+  // Open conversation: load on open, then every 5 seconds while the tab is visible
   const partnerId = partner?.id
-  useEffect(() => {
-    if (status !== "authenticated" || !partnerId) return
-    let cancelled = false
-    const load = () =>
-      getThread(partnerId)
-        .then(d => {
-          if (cancelled) return
-          setThread(d.messages)
-          setIBlocked(d.blockedByMe)
-        })
-        .catch(() => {})
-    load()
-    const timer = setInterval(load, 5000)
-    return () => { cancelled = true; clearInterval(timer) }
-  }, [status, partnerId])
+  const activePartner = useRef<string | undefined>(undefined)
 
+  const loadThread = useCallback(() => {
+    const id = partnerId
+    if (!id) return
+    getThread(id)
+      .then(d => {
+        // Ignore a slow answer that arrives after you switched to someone else
+        if (activePartner.current !== id) return
+        setThread(d.messages)
+        setIBlocked(d.blockedByMe)
+      })
+      .catch(() => {})
+  }, [partnerId])
+
+  useEffect(() => {
+    activePartner.current = partnerId
+    if (status === "authenticated" && partnerId) loadThread()
+  }, [status, partnerId, loadThread])
+  usePolling(loadThread, 5000, status === "authenticated" && !!partnerId)
+
+  // People you may start a conversation with
   useEffect(() => {
     if (status !== "authenticated" || !showNew) return
     let cancelled = false
