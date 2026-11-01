@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation"
 import { useSession } from "next-auth/react"
 import {
   LayoutDashboard, Users, Trophy, Calendar, Ticket,
-  Newspaper, Image, MessageSquare, Shield, Settings
+  Newspaper, Image, MessageSquare, Shield, Settings, Flag
 } from "lucide-react"
 
 const navItems = [
@@ -19,6 +19,7 @@ const navItems = [
   { label: "Gallery", href: "/gallery", icon: Image, roles: ["STUDENT","CLUB_LEADER","SPORTS_CAPTAIN","LECTURER","MODERATOR","ADMIN"] },
   { label: "Messages", href: "/messages", icon: MessageSquare, roles: ["STUDENT","CLUB_LEADER","SPORTS_CAPTAIN","LECTURER","MODERATOR","ADMIN"] },
   { label: "Admin", href: "/admin", icon: Shield, roles: ["ADMIN","MODERATOR"] },
+  { label: "Reports", href: "/admin/reports", icon: Flag, roles: ["ADMIN","MODERATOR"] },
 ]
 
 export default function Sidebar() {
@@ -26,6 +27,11 @@ export default function Sidebar() {
   const { data: session } = useSession()
   const userRole = session?.user?.role || "STUDENT"
   const visible = navItems.filter(i => i.roles.includes(userRole))
+
+  // The most specific matching item is the active one (so Admin and Reports don't both light up)
+  const activeHref = visible
+    .filter(i => pathname === i.href || pathname.startsWith(i.href + "/"))
+    .sort((a, b) => b.href.length - a.href.length)[0]?.href
 
   return (
     <aside
@@ -55,7 +61,7 @@ export default function Sidebar() {
       <nav style={{ flex: 1, padding: "10px 10px", overflowY: "auto" }}>
         {visible.map(item => {
           const Icon = item.icon
-          const isActive = pathname === item.href || pathname.startsWith(item.href + "/")
+          const isActive = item.href === activeHref
           return (
             <Link
               key={item.href}
