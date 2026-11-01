@@ -166,6 +166,13 @@ export interface Analytics {
   pendingApprovals: number
 }
 
+export interface Ticket {
+  id: string
+  qrCode: string
+  purchasedAt: string
+  event: { id: string; title: string; venue: string; startsAt: string; endsAt: string }
+}
+
 export function errorMessage(err: unknown, fallback = "Something went wrong"): string {
   return err instanceof Error ? err.message : fallback
 }
