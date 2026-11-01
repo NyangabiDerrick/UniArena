@@ -108,6 +108,9 @@ export const purchaseTicket = async (req: AuthRequest, res: Response) => {
     }
 
     const ticket = await prisma.$transaction(async tx => {
+      // Lock the event row so two people can't both take the last spot
+      await tx.$queryRaw`SELECT id FROM "Event" WHERE id = ${eventId} FOR UPDATE`
+
       const existing = await tx.ticket.findFirst({ where: { eventId, userId } })
       if (existing) throw new Error('ALREADY_HAS_TICKET')
 

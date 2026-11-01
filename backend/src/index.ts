@@ -16,6 +16,9 @@ import adminRoutes from './routes/admin'
 import notificationRoutes from './routes/notifications'
 import messageRoutes from './routes/messages'
 import adminReportRoutes from './routes/adminReports'
+import appealRoutes from './routes/appeals'
+import adminAppealRoutes from './routes/adminAppeals'
+import commentRoutes from './routes/comments'
 
 dotenv.config()
 
@@ -68,6 +71,9 @@ app.use('/api/clubs', clubRoutes)
 app.use('/api/sports', sportRoutes)
 app.use('/api/events', eventRoutes)
 app.use('/api/articles', articleRoutes)
+app.use('/api/appeals', appealRoutes)
+app.use('/api/admin/appeals', adminAppealRoutes)
+app.use('/api', commentRoutes)
 app.use('/api/admin', adminRoutes)
 app.use('/api/notifications', notificationRoutes)
 app.use('/api/messages', messageRoutes)

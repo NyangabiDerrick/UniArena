@@ -31,6 +31,9 @@ model User {
   blocksReceived  UserBlock[]     @relation("Blocked")
   reportsMade     MessageReport[] @relation("Reporter")
   reportsAgainst  MessageReport[] @relation("Reported")
+  warnings        Warning[] @relation("WarningTarget")
+  warningsIssued  Warning[] @relation("WarningIssuer")
+  appeals         Appeal[]  @relation("AppealUser")
 
   clubMemberships  ClubMembership[]
   clubCommittees   ClubCommittee[]
@@ -391,7 +394,45 @@ model MessageReport {
   resolvedById String?
   createdAt    DateTime     @default(now())
   resolvedAt   DateTime?
+  targetType ReportTarget @default(MESSAGE)
+  targetId   String?
 
   reporter User @relation("Reporter", fields: [reporterId], references: [id])
   reported User @relation("Reported", fields: [reportedId], references: [id])
+}
+
+enum ReportTarget {
+  MESSAGE
+  COMMENT
+}
+
+enum AppealStatus {
+  OPEN
+  APPROVED
+  REJECTED
+}
+
+model Warning {
+  id         String   @id @default(cuid())
+  userId     String
+  reportId   String?
+  message    String
+  issuedById String
+  createdAt  DateTime @default(now())
+
+  user     User @relation("WarningTarget", fields: [userId], references: [id])
+  issuedBy User @relation("WarningIssuer", fields: [issuedById], references: [id])
+}
+
+model Appeal {
+  id          String       @id @default(cuid())
+  userId      String
+  message     String
+  status      AppealStatus @default(OPEN)
+  decision    String?
+  decidedById String?
+  createdAt   DateTime     @default(now())
+  decidedAt   DateTime?
+
+  user User @relation("AppealUser", fields: [userId], references: [id])
 }
