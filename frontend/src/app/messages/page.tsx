@@ -304,3 +304,84 @@ export default function MessagesPage() {
 
                 <div style={{ flex: 1, overflowY: "auto", padding: 20, display: "flex", flexDirection: "column", gap: 10 }}>
                   {thread.length === 0 && <p style={{ fontSize: 13, color: "#9CA3AF", textAlign: "center", marginTop: 40 }}>No messages yet. Say hello.</p>}
+                  {thread.map(m => {
+                    const mine = m.senderId !== partner.id
+                    return (
+                      <div key={m.id} style={{ display: "flex", justifyContent: mine ? "flex-end" : "flex-start" }}>
+                        <div style={{ maxWidth: "65%", padding: "10px 14px", borderRadius: mine ? "16px 16px 4px 16px" : "16px 16px 16px 4px", background: mine ? "#0B1D3A" : "#F3F4F6", color: mine ? "white" : "#1A1916" }}>
+                          <p style={{ fontSize: 13, lineHeight: 1.5, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{m.content}</p>
+                          <p style={{ fontSize: 10, marginTop: 4, color: mine ? "rgba(255,255,255,0.5)" : "#9CA3AF" }}>{shortTime(m.sentAt)}</p>
+                        </div>
+                      </div>
+                    )
+                  })}
+                  <div ref={bottomRef} />
+                </div>
+
+                {notice && <div style={{ padding: "8px 20px", fontSize: 12, color: "#166534", background: "#F0FDF4", borderTop: "1px solid #BBF7D0" }}>{notice}</div>}
+                {error && <div style={{ padding: "8px 20px", fontSize: 12, color: "#991B1B", background: "#FEF2F2", borderTop: "1px solid #FECACA" }}>{error}</div>}
+
+                {iBlocked ? (
+                  <div style={{ padding: "16px 20px", borderTop: "1px solid #E4E2DC", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+                    <p style={{ fontSize: 13, color: "#6B6962" }}>You blocked this person. Neither of you can send messages.</p>
+                    <button onClick={() => unblock(partner)} style={{ ...smallBtn, color: "#0B1D3A" }}>Unblock</button>
+                  </div>
+                ) : (
+                  <div style={{ padding: "14px 20px", borderTop: "1px solid #E4E2DC", display: "flex", gap: 10 }}>
+                    <input placeholder="Type a message..." value={text} maxLength={2000}
+                      onChange={e => setText(e.target.value)}
+                      onKeyDown={e => e.key === "Enter" && send()}
+                      style={{ flex: 1, padding: "11px 16px", fontSize: 13, borderRadius: 10, border: "1.5px solid #E4E2DC", outline: "none", fontFamily: "'Inter', sans-serif" }} />
+                    <button onClick={send} disabled={!text.trim() || sending} aria-label="Send"
+                      style={{ width: 42, height: 42, borderRadius: 10, border: "none", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center",
+                        background: text.trim() && !sending ? "#0B1D3A" : "#E4E2DC", color: text.trim() && !sending ? "white" : "#9CA3AF",
+                        cursor: text.trim() && !sending ? "pointer" : "not-allowed" }}>
+                      <Send size={16} />
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {reporting && partner && (
+        <div onClick={() => setReporting(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: "white", borderRadius: 16, padding: 28, width: "min(460px, 92vw)" }}>
+            <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, color: "#0B1D3A", marginBottom: 6 }}>Report {partner.name}</h2>
+            <p style={{ fontSize: 13, color: "#6B6962", marginBottom: 18, lineHeight: 1.6 }}>
+              An administrator will see your latest messages with this person, and nothing else from your account.
+              You can only report someone who has messaged you.
+            </p>
+
+            <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "#0B1D3A", marginBottom: 6 }}>What happened?</label>
+            <select value={reason} onChange={e => setReason(e.target.value as ReportReason)}
+              style={{ width: "100%", padding: "11px 12px", fontSize: 14, borderRadius: 10, border: "1.5px solid #E4E2DC", marginBottom: 14, fontFamily: "'Inter', sans-serif" }}>
+              {REASONS.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+            </select>
+
+            <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "#0B1D3A", marginBottom: 6 }}>More details (optional)</label>
+            <textarea value={details} onChange={e => setDetails(e.target.value)} maxLength={1000} rows={3}
+              style={{ width: "100%", padding: "11px 12px", fontSize: 14, borderRadius: 10, border: "1.5px solid #E4E2DC", marginBottom: 14, fontFamily: "'Inter', sans-serif", resize: "vertical" }} />
+
+            {!iBlocked && !partner.subtitle.startsWith("Administrator") && (
+              <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#374151", marginBottom: 20, cursor: "pointer" }}>
+                <input type="checkbox" checked={alsoBlock} onChange={e => setAlsoBlock(e.target.checked)} />
+                Also block this person
+              </label>
+            )}
+
+            <div style={{ display: "flex", gap: 10 }}>
+              <button onClick={() => setReporting(false)} style={{ ...smallBtn, flex: 1, justifyContent: "center", padding: 12, color: "#374151" }}>Cancel</button>
+              <button onClick={submitReport} disabled={reportBusy}
+                style={{ flex: 1, padding: 12, borderRadius: 8, border: "none", background: reportBusy ? "#8A9BC0" : "#0B1D3A", color: "white", fontSize: 13, fontWeight: 600, cursor: reportBusy ? "not-allowed" : "pointer", fontFamily: "'Inter', sans-serif" }}>
+                {reportBusy ? "Sending..." : "Send report"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </MainLayout>
+  )
+}
