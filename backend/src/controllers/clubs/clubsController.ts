@@ -157,3 +157,22 @@ export const updateMembership = async (req: AuthRequest, res: Response) => {
     return sendError(res, 'Failed to update membership', 500, error)
   }
 }
+
+// GET /api/clubs/mine: the club or society the signed-in leader manages
+export const getMyClub = async (req: AuthRequest, res: Response) => {
+  try {
+    const clubId = req.user!.managedClubId
+    if (!clubId) return sendError(res, 'You have not been assigned a club or society yet', 404)
+
+    const club = await prisma.club.findUnique({ where: { id: clubId } })
+    if (!club) return sendError(res, 'Club not found', 404)
+
+    const upcomingEvents = await prisma.event.count({
+      where: { clubId, status: 'APPROVED', startsAt: { gte: new Date() } }
+    })
+
+    return sendSuccess(res, { ...club, upcomingEvents })
+  } catch (error) {
+    return sendError(res, 'Failed to fetch your club', 500, error)
+  }
+}

@@ -34,6 +34,7 @@ export const api = {
     return request<any[]>(`/api/clubs${query ? `?${query}` : ""}`)
   },
   getClub: (id: string) => request<any>(`/api/clubs/${id}`),
+  getMyClub: () => request<any>("/api/clubs/mine"),
   createClub: (data: any) => request<any>("/api/clubs", { method: "POST", body: JSON.stringify(data) }),
   joinClub: (id: string) => request<any>(`/api/clubs/${id}/join`, { method: "POST" }),
   getClubMembers: (id: string) => request<any[]>(`/api/clubs/${id}/members`),
