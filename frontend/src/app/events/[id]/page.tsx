@@ -5,6 +5,8 @@ import MainLayout from "@/components/layout/MainLayout"
 import { ArrowLeft, Calendar, Clock, MapPin, Users, CheckCircle } from "lucide-react"
 import Link from "next/link"
 import { api } from "@/lib/api"
+import type { Event } from "@/lib/types"
+import { eventCategory } from "@/lib/format"
 
 const mockEvent = {
   id: "1",
@@ -29,7 +31,7 @@ All students, staff and their families are welcome to attend.`,
 
 export default function EventDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
-  const [event, setEvent] = useState<any>(mockEvent)
+  const [event, setEvent] = useState<Event>({ ...mockEvent, startsAt: "" })
   const [quantity, setQuantity] = useState(1)
   const [purchased, setPurchased] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -40,7 +42,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
       .catch(() => {})
   }, [id])
 
-  const spotsLeft = event.capacity - (event._count?.tickets || event.sold || 0)
+  const spotsLeft = (event.capacity ?? 0) - (event._count?.tickets || event.sold || 0)
   const isFree = event.isFree
 
   const handlePurchase = async () => {
@@ -177,7 +179,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                 <span style={{
                   fontSize: 11, padding: "4px 12px", borderRadius: 99,
                   background: "#FFF7ED", color: "#C2410C", fontWeight: 500
-                }}>{event.category || "Event"}</span>
+                }}>{eventCategory(event)}</span>
                 {isFree && (
                   <span style={{
                     fontSize: 11, padding: "4px 12px", borderRadius: 99,

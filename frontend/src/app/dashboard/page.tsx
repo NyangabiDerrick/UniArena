@@ -6,6 +6,7 @@ import { useSession } from "next-auth/react"
 import MainLayout from "@/components/layout/MainLayout"
 import { Users, Calendar, Trophy, Ticket, MapPin } from "lucide-react"
 import { api } from "@/lib/api"
+import type { Article, Club, Dashboard, Event } from "@/lib/types"
 
 const card: React.CSSProperties = { background: "white", borderRadius: 14, border: "1px solid #E4E2DC" }
 
@@ -14,7 +15,7 @@ const when = (d: string) =>
 
 export default function DashboardPage() {
   const { data: session, status } = useSession()
-  const [data, setData] = useState<any>(null)
+  const [data, setData] = useState<Dashboard | null>(null)
   const [error, setError] = useState("")
 
   useEffect(() => {
@@ -81,7 +82,7 @@ export default function DashboardPage() {
         {noGroups && (
           <div style={{ ...card, padding: 36, textAlign: "center", marginBottom: 24 }}>
             <p style={{ fontSize: 36, marginBottom: 10 }}>🏛️</p>
-            <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, color: "#0B1D3A", marginBottom: 8 }}>You haven't joined anything yet</h2>
+            <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, color: "#0B1D3A", marginBottom: 8 }}>You haven&apos;t joined anything yet</h2>
             <p style={{ fontSize: 13, color: "#6B6962", marginBottom: 16 }}>Join a club or society and its events and news will appear here.</p>
             <Link href="/clubs" style={{ display: "inline-block", padding: "10px 20px", borderRadius: 8, background: "#0B1D3A", color: "white", fontSize: 13, fontWeight: 600, textDecoration: "none" }}>
               Browse clubs and societies
@@ -94,7 +95,7 @@ export default function DashboardPage() {
             <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 17, color: "#0B1D3A", marginBottom: 16 }}>Upcoming events</h2>
             {!data || data.events.length === 0 ? (
               <p style={{ fontSize: 13, color: "#6B6962" }}>No upcoming events from your groups.</p>
-            ) : data.events.map((ev: any) => (
+            ) : data.events.map((ev: Event) => (
               <Link key={ev.id} href={`/events/${ev.id}`} style={{ textDecoration: "none", display: "block", padding: "12px 0", borderBottom: "1px solid #F3F4F6" }}>
                 <p style={{ fontSize: 14, fontWeight: 500, color: "#0B1D3A", marginBottom: 4 }}>{ev.title}</p>
                 <p style={{ fontSize: 12, color: "#9CA3AF", display: "flex", gap: 12, flexWrap: "wrap" }}>
@@ -110,7 +111,7 @@ export default function DashboardPage() {
             <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 17, color: "#0B1D3A", marginBottom: 16 }}>Latest news</h2>
             {!data || data.articles.length === 0 ? (
               <p style={{ fontSize: 13, color: "#6B6962" }}>No news yet.</p>
-            ) : data.articles.map((a: any) => (
+            ) : data.articles.map((a: Article) => (
               <Link key={a.id} href={`/news/${a.id}`} style={{ textDecoration: "none", display: "block", padding: "12px 0", borderBottom: "1px solid #F3F4F6" }}>
                 <p style={{ fontSize: 14, fontWeight: 500, color: "#0B1D3A", marginBottom: 4 }}>{a.title}</p>
                 <p style={{ fontSize: 12, color: "#9CA3AF" }}>
@@ -125,7 +126,7 @@ export default function DashboardPage() {
           <div style={{ ...card, padding: 24, marginTop: 20 }}>
             <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 17, color: "#0B1D3A", marginBottom: 16 }}>My clubs and societies</h2>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
-              {data.clubs.map((c: any) => (
+              {data.clubs.map((c: Club) => (
                 <Link key={c.id} href={`/clubs/${c.id}`} style={{ textDecoration: "none", padding: "8px 16px", borderRadius: 99, border: "1.5px solid #E4E2DC", fontSize: 13, color: "#0B1D3A", fontWeight: 500 }}>
                   {c.name}
                 </Link>

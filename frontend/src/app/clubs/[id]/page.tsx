@@ -6,6 +6,8 @@ import { useSession } from "next-auth/react"
 import { Users, Calendar, FileText, ArrowLeft, CheckCircle, MapPin } from "lucide-react"
 import Link from "next/link"
 import { api } from "@/lib/api"
+import { errorMessage } from "@/lib/types"
+import type { Club, Committee, Event, Membership } from "@/lib/types"
 
 const tabs = ["About", "Events", "News", "Members", "Committee"]
 
@@ -19,7 +21,7 @@ const emptyState = (icon: React.ReactNode, text: string) => (
 export default function ClubProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
   const { data: session, status } = useSession()
-  const [club, setClub] = useState<any>(null)
+  const [club, setClub] = useState<Club | null>(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState("About")
   const [membership, setMembership] = useState<string | null | undefined>(undefined)
@@ -46,8 +48,8 @@ export default function ClubProfilePage({ params }: { params: Promise<{ id: stri
     try {
       await api.joinClub(id)
       setMembership("PENDING")
-    } catch (err: any) {
-      setJoinError(err.message)
+    } catch (err) {
+      setJoinError(errorMessage(err))
     } finally {
       setJoining(false)
     }
@@ -107,7 +109,7 @@ export default function ClubProfilePage({ params }: { params: Promise<{ id: stri
                     {club.type === "SOCIETY" ? "Society" : "Club"}
                   </span>
                   <span style={{ fontSize: 11, padding: "3px 10px", borderRadius: 99, background: "#F1F5F9", color: "#475569", fontWeight: 500 }}>{club.category}</span>
-                  <span style={{ display: "flex", alignItems: "center", gap: 4 }}><Users size={13} />{club.memberCount || club._count?.memberships || 0} members</span>
+                  <span style={{ display: "flex", alignItems: "center", gap: 4 }}><Users size={13} />{club._count?.memberships ?? 0} members</span>
                 </div>
               </div>
             </div>
@@ -144,9 +146,9 @@ export default function ClubProfilePage({ params }: { params: Promise<{ id: stri
           {activeTab === "Events" && (
             <div>
               <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, color: "#0B1D3A", marginBottom: 20 }}>Upcoming events</h2>
-              {club.events?.length > 0 ? (
+              {(club.events?.length ?? 0) > 0 ? (
                 <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                  {club.events.map((ev: any) => (
+                  {(club.events ?? []).map((ev: Event) => (
                     <Link key={ev.id} href={`/events/${ev.id}`} style={{ textDecoration: "none" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 16, padding: "16px 20px", borderRadius: 12, border: "1px solid #E4E2DC" }}>
                         <div style={{ width: 42, height: 42, borderRadius: 10, flexShrink: 0, background: "#EFF6FF", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -177,9 +179,9 @@ export default function ClubProfilePage({ params }: { params: Promise<{ id: stri
           {activeTab === "Members" && (
             <div>
               <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, color: "#0B1D3A", marginBottom: 16 }}>Members</h2>
-              {club.memberships?.length > 0 ? (
+              {(club.memberships?.length ?? 0) > 0 ? (
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                  {club.memberships.map((m: any) => (
+                  {(club.memberships ?? []).map((m: Membership) => (
                     <div key={m.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", borderRadius: 10, border: "1px solid #F3F4F6" }}>
                       <div style={{ width: 36, height: 36, borderRadius: 8, flexShrink: 0, background: "#EFF6FF", color: "#1D4ED8", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 13 }}>
                         {m.user?.name?.charAt(0) || "?"}
@@ -198,9 +200,9 @@ export default function ClubProfilePage({ params }: { params: Promise<{ id: stri
           {activeTab === "Committee" && (
             <div>
               <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, color: "#0B1D3A", marginBottom: 20 }}>Committee</h2>
-              {club.committees?.length > 0 ? (
+              {(club.committees?.length ?? 0) > 0 ? (
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                  {club.committees.map((c: any) => (
+                  {(club.committees ?? []).map((c: Committee) => (
                     <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 18px", borderRadius: 12, border: "1px solid #E4E2DC" }}>
                       <div style={{ width: 40, height: 40, borderRadius: 10, flexShrink: 0, background: "#0B1D3A", color: "#C9A84C", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 15 }}>
                         {c.user?.name?.charAt(0) || "?"}

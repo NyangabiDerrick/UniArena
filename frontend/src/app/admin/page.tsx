@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react"
 import Link from "next/link"
 import { Users, Building2, Calendar, AlertCircle, Clock, ChevronDown } from "lucide-react"
 import { api } from "@/lib/api"
+import type { AuditLog } from "@/lib/types"
 
 const quickActions = [
   { label: "Manage Users", desc: "View, suspend, change roles", href: "/admin/users", icon: Users, bg: "#EFF6FF", color: "#1D4ED8" },
@@ -15,7 +16,7 @@ const quickActions = [
 export default function AdminPage() {
   const { status } = useSession()
   const [analytics, setAnalytics] = useState({ totalUsers: 0, totalClubs: 0, totalEvents: 0, pendingApprovals: 0 })
-  const [logs, setLogs] = useState<any[]>([])
+  const [logs, setLogs] = useState<AuditLog[]>([])
   const [openId, setOpenId] = useState<string | null>(null)
 
   useEffect(() => {

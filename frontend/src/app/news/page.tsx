@@ -5,6 +5,8 @@ import MainLayout from "@/components/layout/MainLayout"
 import { Search } from "lucide-react"
 import Link from "next/link"
 import { api } from "@/lib/api"
+import type { Article } from "@/lib/types"
+import { articleCategory } from "@/lib/format"
 
 const filters = ["All", "Clubs", "Sports", "University"]
 
@@ -15,7 +17,7 @@ const catColors: Record<string, { bg: string; text: string }> = {
 }
 
 export default function NewsPage() {
-  const [articles, setArticles] = useState<any[]>([])
+  const [articles, setArticles] = useState<Article[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
   const [selected, setSelected] = useState("All")
@@ -36,27 +38,27 @@ export default function NewsPage() {
   }, [search])
 
   const filtered = articles.filter(a =>
-    selected === "All" || a.category === selected
+    selected === "All" || articleCategory(a) === selected
   )
 
   const pinned = filtered.filter(a => a.isPinned)
   const regular = filtered.filter(a => !a.isPinned)
 
-  const getSource = (a: any) => {
+  const getSource = (a: Article) => {
     if (a.club?.name) return a.club.name
     if (a.team?.name) return a.team.name
     if (a.isUniversityWide) return "University"
     return "UniArena"
   }
 
-  const getCategory = (a: any) => {
+  const getCategory = (a: Article) => {
     if (a.team) return "Sports"
     if (a.club) return "Clubs"
     if (a.isUniversityWide) return "University"
     return "General"
   }
 
-  const renderCard = (a: any, highlighted = false) => {
+  const renderCard = (a: Article, highlighted = false) => {
     const category = getCategory(a)
     const source = getSource(a)
     const c = catColors[category] || { bg: "#F1F5F9", text: "#475569" }
@@ -104,7 +106,7 @@ export default function NewsPage() {
             display: "-webkit-box",
             WebkitLineClamp: 2,
             WebkitBoxOrient: "vertical"
-          } as any}>
+          } as React.CSSProperties}>
             {a.content?.substring(0, 150)}...
           </p>
 
