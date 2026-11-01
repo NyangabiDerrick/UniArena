@@ -15,6 +15,7 @@ import articleRoutes from './routes/articles'
 import adminRoutes from './routes/admin'
 import notificationRoutes from './routes/notifications'
 import messageRoutes from './routes/messages'
+import adminReportRoutes from './routes/adminReports'
 
 dotenv.config()
 
@@ -70,6 +71,7 @@ app.use('/api/articles', articleRoutes)
 app.use('/api/admin', adminRoutes)
 app.use('/api/notifications', notificationRoutes)
 app.use('/api/messages', messageRoutes)
+app.use('/api/admin/reports', adminReportRoutes)
 
 // These two MUST stay last. Anything registered after them is never reached.
 app.use(notFound)
