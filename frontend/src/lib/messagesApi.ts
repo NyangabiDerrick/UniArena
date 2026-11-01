@@ -24,6 +24,14 @@ export interface ChatMessage {
   sentAt: string
 }
 
+export interface Thread {
+  partner: Partner
+  messages: ChatMessage[]
+  blockedByMe: boolean
+}
+
+export type ReportReason = "SPAM" | "HARASSMENT" | "INAPPROPRIATE" | "OTHER"
+
 async function call<T>(path: string, method = "GET", body?: unknown): Promise<T> {
   const session = await getSession()
   const res = await fetch(`${API_URL}${path}`, {
@@ -45,8 +53,13 @@ async function call<T>(path: string, method = "GET", body?: unknown): Promise<T>
 export const getConversations = () => call<Conversation[]>("/api/messages/conversations")
 export const getContacts = (search: string) =>
   call<Partner[]>(`/api/messages/contacts?search=${encodeURIComponent(search)}`)
-export const getThread = (userId: string) =>
-  call<{ partner: Partner; messages: ChatMessage[] }>(`/api/messages/thread/${userId}`)
+export const getThread = (userId: string) => call<Thread>(`/api/messages/thread/${userId}`)
 export const sendMessage = (receiverId: string, content: string) =>
   call<ChatMessage>("/api/messages", "POST", { receiverId, content })
 export const getUnreadMessages = () => call<{ count: number }>("/api/messages/unread-count")
+
+export const getBlocks = () => call<Partner[]>("/api/messages/blocks")
+export const blockUser = (userId: string) => call<null>("/api/messages/blocks", "POST", { userId })
+export const unblockUser = (userId: string) => call<null>(`/api/messages/blocks/${userId}`, "DELETE")
+export const reportUser = (userId: string, reason: ReportReason, details?: string) =>
+  call<null>("/api/messages/reports", "POST", { userId, reason, details: details || undefined })
