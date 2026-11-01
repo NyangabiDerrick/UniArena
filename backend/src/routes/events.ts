@@ -1,12 +1,13 @@
 import { Router } from 'express'
 import { body } from 'express-validator'
-import { getEvents, getEventById, createEvent, purchaseTicket } from '../controllers/events/eventsController'
+import { getEvents, getEventById, createEvent, purchaseTicket, getMyTickets } from '../controllers/events/eventsController'
 import { authenticate, requireRole, ROLES } from '../middleware/auth'
 import { validate } from '../middleware/validate'
 
 const router = Router()
 
 router.get('/', getEvents)
+router.get('/tickets/mine', authenticate, getMyTickets)
 router.get('/:id', getEventById)
 router.post('/',
   authenticate,

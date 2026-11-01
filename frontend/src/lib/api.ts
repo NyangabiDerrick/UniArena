@@ -1,5 +1,5 @@
 import { getSession } from "next-auth/react"
-import type { Analytics, Article, AuditLog, Club, Dashboard, Event, Fixture, Membership, MemberWithUser, Profile, Team, User } from "./types"
+import type { Analytics, Article, AuditLog, Club, Dashboard, Event, Fixture, Membership, MemberWithUser, Profile, Team, Ticket, User } from "./types"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
 
@@ -73,7 +73,7 @@ export const api = {
   createEvent: (data: Partial<Event>) => request<Event>("/api/events", { method: "POST", body: JSON.stringify(data) }),
   purchaseTicket: (eventId: string) =>
     request<unknown>(`/api/events/${eventId}/tickets`, { method: "POST" }),
-
+  getMyTickets: () => request<Ticket[]>("/api/events/tickets/mine"),
   // Articles
   getArticles: (params?: { search?: string; category?: string }) => {
     const query = new URLSearchParams(cleanParams(params)).toString()

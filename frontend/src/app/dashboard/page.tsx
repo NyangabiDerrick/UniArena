@@ -30,7 +30,7 @@ export default function DashboardPage() {
     { label: "My clubs & societies", value: data?.clubs.length ?? 0, sub: data?.pendingRequests ? `${data.pendingRequests} request${data.pendingRequests > 1 ? "s" : ""} pending` : "Groups you belong to", href: "/clubs", icon: Users },
     { label: "My sports teams", value: data?.teams.length ?? 0, sub: "Teams you play for", href: "/sports", icon: Trophy },
     { label: "Upcoming events", value: data?.events.length ?? 0, sub: "From your groups", href: "/events", icon: Calendar },
-    { label: "My tickets", value: data?.tickets ?? 0, sub: "Upcoming events", href: "/events", icon: Ticket }
+    { label: "My tickets", value: data?.tickets ?? 0, sub: "Upcoming events", href: "/tickets", icon: Ticket }
   ]
 
   const noGroups = data && data.clubs.length === 0 && data.teams.length === 0
