@@ -52,7 +52,6 @@ model Club {
   logoUrl     String?
   bannerUrl   String?
   status      ClubStatus @default(PENDING)
-  memberCount Int        @default(0)
   foundedAt   DateTime?
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
