@@ -1,8 +1,17 @@
 import { Request, Response } from 'express'
 import crypto from 'crypto'
+import { EventCategory } from '@prisma/client'
 import { prisma } from '../../config/prisma'
 import { sendSuccess, sendError } from '../../utils/response'
 import { AuthRequest } from '../../middleware/auth'
+
+// What each kind of creator may choose. The form shows these, and the server enforces them.
+const allowedEventCategories = (role: string, hasClub: boolean, hasTeam: boolean): EventCategory[] => {
+  if (role === 'ADMIN') return ['SOCIAL', 'CLUB', 'SPORTS', 'UNIVERSITY', 'ACADEMIC']
+  if (hasTeam) return ['SPORTS', 'SOCIAL']
+  if (hasClub) return ['CLUB', 'SOCIAL', 'ACADEMIC']
+  return []
+}
 
 // GET /api/events (public): approved events with how many tickets are taken
 export const getEvents = async (req: Request, res: Response) => {
@@ -35,6 +44,12 @@ export const getEvents = async (req: Request, res: Response) => {
   }
 }
 
+// GET /api/events/categories: the categories the signed-in person may use
+export const getEventCategories = async (req: AuthRequest, res: Response) => {
+  const u = req.user!
+  return sendSuccess(res, allowedEventCategories(u.role, !!u.managedClubId, !!u.managedTeamId))
+}
+
 // GET /api/events/:id (public)
 export const getEventById = async (req: Request, res: Response) => {
   try {
@@ -60,6 +75,12 @@ export const createEvent = async (req: AuthRequest, res: Response) => {
   try {
     const u = req.user!
     const { title, description, venue, startsAt, endsAt, capacity, isFree } = req.body
+    const category = req.body.category as EventCategory
+
+    const start = new Date(startsAt)
+    const end = new Date(endsAt)
+    if (end <= start) return sendError(res, 'The event must end after it starts', 400)
+    if (start < new Date()) return sendError(res, 'The start time must be in the future', 400)
 
     let clubId: string | undefined
     let teamId: string | undefined
@@ -72,11 +93,16 @@ export const createEvent = async (req: AuthRequest, res: Response) => {
       teamId = req.body.teamId || undefined
     }
 
+    const allowed = allowedEventCategories(u.role, !!clubId, !!teamId)
+    if (!allowed.includes(category)) {
+      return sendError(res, `You can't create a ${String(category).toLowerCase()} event. Allowed: ${allowed.join(', ')}`, 403)
+    }
+
     const event = await prisma.event.create({
       data: {
-        title, description, venue,
-        startsAt: new Date(startsAt),
-        endsAt: new Date(endsAt),
+        title, description, venue, category,
+        startsAt: start,
+        endsAt: end,
         capacity: parseInt(capacity),
         isFree: isFree ?? false,
         status: u.role === 'ADMIN' ? 'APPROVED' : 'PENDING',
@@ -86,7 +112,7 @@ export const createEvent = async (req: AuthRequest, res: Response) => {
       }
     })
 
-    return sendSuccess(res, event, u.role === 'ADMIN' ? 'Event created' : 'Event created and pending approval', 201)
+    return sendSuccess(res, event, u.role === 'ADMIN' ? 'Event published' : 'Event submitted for approval', 201)
   } catch (error) {
     return sendError(res, 'Failed to create event', 500, error)
   }
@@ -140,9 +166,10 @@ export const purchaseTicket = async (req: AuthRequest, res: Response) => {
     })
 
     return sendSuccess(res, ticket, 'You are going! Your ticket is confirmed.', 201)
-  } catch (error: any) {
-    if (error.message === 'ALREADY_HAS_TICKET') return sendError(res, 'You already have a ticket for this event', 409)
-    if (error.message === 'SOLD_OUT') return sendError(res, 'This event is sold out', 409)
+  } catch (error: unknown) {
+    const reason = error instanceof Error ? error.message : ''
+    if (reason === 'ALREADY_HAS_TICKET') return sendError(res, 'You already have a ticket for this event', 409)
+    if (reason === 'SOLD_OUT') return sendError(res, 'This event is sold out', 409)
     return sendError(res, 'Failed to get your ticket', 500, error)
   }
 }
