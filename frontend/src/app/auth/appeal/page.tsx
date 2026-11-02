@@ -3,6 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import AuthShell, { inputStyle, labelStyle, primaryButton, errorBox, successBox, linkStyle } from "@/components/layout/AuthShell"
+import PasswordInput from "@/components/layout/PasswordInput"
 import { submitAppeal } from "@/lib/appealApi"
 
 export default function AppealPage() {
@@ -36,21 +37,21 @@ export default function AppealPage() {
   }
 
   return (
-    <AuthShell title="Appeal your suspension" subtitle="Sign in details prove the account is yours. Explain why the decision should change.">
+    <AuthShell title="Appeal your suspension" subtitle="Your sign-in details prove the account is yours. Explain why the decision should change.">
       {error && <div style={errorBox}>{error}</div>}
 
       <form onSubmit={submit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         <div>
-          <label style={labelStyle}>University email</label>
-          <input type="email" value={email} onChange={e => setEmail(e.target.value)} required style={inputStyle} />
+          <label htmlFor="email" style={labelStyle}>University email</label>
+          <input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} required autoComplete="email" style={inputStyle} />
         </div>
         <div>
-          <label style={labelStyle}>Password</label>
-          <input type="password" value={password} onChange={e => setPassword(e.target.value)} required style={inputStyle} />
+          <label htmlFor="password" style={labelStyle}>Password</label>
+          <PasswordInput id="password" value={password} onChange={setPassword} autoComplete="current-password" />
         </div>
         <div>
-          <label style={labelStyle}>Your appeal</label>
-          <textarea value={message} onChange={e => setMessage(e.target.value)} required minLength={10} maxLength={1500} rows={5}
+          <label htmlFor="message" style={labelStyle}>Your appeal</label>
+          <textarea id="message" value={message} onChange={e => setMessage(e.target.value)} required minLength={10} maxLength={1500} rows={5}
             placeholder="Explain what happened and why your account should be restored."
             style={{ ...inputStyle, resize: "vertical" }} />
         </div>
