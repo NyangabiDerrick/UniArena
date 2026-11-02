@@ -5,6 +5,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import AuthShell, { inputStyle, labelStyle, primaryButton, errorBox, linkStyle } from "@/components/layout/AuthShell"
+import PasswordInput from "@/components/layout/PasswordInput"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -24,7 +25,7 @@ export default function LoginPage() {
       setError(result.error === "CredentialsSignin" ? "Invalid email or password" : result.error)
       setLoading(false)
     } else {
-      router.push("/dashboard")
+      router.replace("/dashboard")
     }
   }
 
@@ -43,14 +44,13 @@ export default function LoginPage() {
 
       <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         <div>
-          <label style={labelStyle}>University Email</label>
-          <input type="email" value={email} onChange={e => setEmail(e.target.value)}
-            placeholder="bsccs202430303@mylife.mku.ac.ke" required style={inputStyle} />
+          <label htmlFor="email" style={labelStyle}>University Email</label>
+          <input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)}
+            placeholder="bsccs202430303@mylife.mku.ac.ke" required autoComplete="email" style={inputStyle} />
         </div>
         <div>
-          <label style={labelStyle}>Password</label>
-          <input type="password" value={password} onChange={e => setPassword(e.target.value)}
-            placeholder="••••••••" required style={inputStyle} />
+          <label htmlFor="password" style={labelStyle}>Password</label>
+          <PasswordInput id="password" value={password} onChange={setPassword} autoComplete="current-password" />
         </div>
         <button type="submit" disabled={loading} style={primaryButton(loading)}>
           {loading ? "Signing in..." : "Sign in to UniArena"}
