@@ -6,11 +6,14 @@ import {
   getAuditLogs, getAnalytics
 } from '../controllers/admin/adminController'
 import { authenticate, requireRole, ROLES } from '../middleware/auth'
+import adminGroupRoutes from './adminGroups'
 
 const router = Router()
 
 router.use(authenticate)
 router.use(requireRole(ROLES.ADMIN, ROLES.MODERATOR))
+
+router.use('/groups', adminGroupRoutes)
 
 router.get('/users', getUsers)
 router.put('/users/:id', requireRole(ROLES.ADMIN), updateUser)
