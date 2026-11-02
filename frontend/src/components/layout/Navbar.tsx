@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { signOut, useSession } from "next-auth/react"
-import { usePathname } from "next/navigation"
-import { Bell, LogOut, User, MessageSquare } from "lucide-react"
+import { usePathname, useRouter } from "next/navigation"
+import { ArrowLeft, Bell, LogOut, User, MessageSquare } from "lucide-react"
 import Link from "next/link"
 import { getCounts } from "@/lib/countsApi"
 import { usePolling } from "@/lib/usePolling"
@@ -17,6 +17,7 @@ const badge: React.CSSProperties = {
 export default function Navbar() {
   const { data: session, status } = useSession()
   const pathname = usePathname()
+  const router = useRouter()
   const [unread, setUnread] = useState(0)
   const [unreadMessages, setUnreadMessages] = useState(0)
 
@@ -35,6 +36,11 @@ export default function Navbar() {
   }, [status, pathname, refresh])
   usePolling(refresh, 30000, status === "authenticated")
 
+  const goBack = () => {
+    if (window.history.length > 1) router.back()
+    else router.push("/dashboard")
+  }
+
   const iconLink: React.CSSProperties = {
     display: "flex", alignItems: "center", justifyContent: "center",
     width: 36, height: 36, borderRadius: 8, color: "#6B6962",
@@ -52,6 +58,20 @@ export default function Navbar() {
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        {pathname !== "/dashboard" && (
+          <button
+            onClick={goBack}
+            aria-label="Go back"
+            title="Back"
+            style={{
+              display: "flex", alignItems: "center", justifyContent: "center",
+              width: 34, height: 34, borderRadius: 8, border: "1.5px solid #E4E2DC",
+              background: "white", color: "#0B1D3A", cursor: "pointer"
+            }}
+          >
+            <ArrowLeft size={16} />
+          </button>
+        )}
         <div style={{ width: 3, height: 18, backgroundColor: "#C9A84C", borderRadius: 2 }} />
         <span style={{ fontSize: 13, color: "#6B6962" }}>
           Welcome back,{" "}
