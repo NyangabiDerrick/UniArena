@@ -178,6 +178,7 @@ model Event {
   createdBy   String
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
+  category EventCategory @default(SOCIAL)
 
   club    Club?       @relation(fields: [clubId], references: [id])
   team    SportsTeam? @relation(fields: [teamId], references: [id])
@@ -214,6 +215,7 @@ model Article {
   coverImageUrl    String?
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
+  category ArticleCategory @default(UNIVERSITY)
 
   author   User        @relation(fields: [authorId], references: [id])
   club     Club?       @relation(fields: [clubId], references: [id])
@@ -435,4 +437,18 @@ model Appeal {
   decidedAt   DateTime?
 
   user User @relation("AppealUser", fields: [userId], references: [id])
+}
+
+enum EventCategory {
+  SOCIAL
+  CLUB
+  SPORTS
+  UNIVERSITY
+  ACADEMIC
+}
+
+enum ArticleCategory {
+  CLUB
+  SPORTS
+  UNIVERSITY
 }

@@ -1,16 +1,30 @@
 import { Request, Response } from 'express'
+import { ArticleCategory } from '@prisma/client'
 import { prisma } from '../../config/prisma'
 import { sendSuccess, sendError } from '../../utils/response'
 import { AuthRequest } from '../../middleware/auth'
 
-// GET /api/articles
+// What each kind of creator may choose. The form shows these, and the server enforces them.
+const allowedArticleCategories = (role: string, hasClub: boolean, hasTeam: boolean): ArticleCategory[] => {
+  if (role === 'ADMIN') return ['CLUB', 'SPORTS', 'UNIVERSITY']
+  if (hasTeam) return ['SPORTS']
+  if (hasClub) return ['CLUB']
+  return []
+}
+
+// GET /api/articles (public): published articles, pinned first
 export const getArticles = async (req: Request, res: Response) => {
   try {
-    const { category, search } = req.query
+    const { search, category } = req.query
+    const categoryFilter =
+      category === 'CLUB' || category === 'SPORTS' || category === 'UNIVERSITY'
+        ? { category: category as ArticleCategory }
+        : {}
 
     const articles = await prisma.article.findMany({
       where: {
         status: 'PUBLISHED',
+        ...categoryFilter,
         ...(search ? {
           OR: [
             { title: { contains: String(search), mode: 'insensitive' } },
@@ -32,7 +46,13 @@ export const getArticles = async (req: Request, res: Response) => {
   }
 }
 
-// GET /api/articles/:id
+// GET /api/articles/categories: the categories the signed-in person may use
+export const getArticleCategories = async (req: AuthRequest, res: Response) => {
+  const u = req.user!
+  return sendSuccess(res, allowedArticleCategories(u.role, !!u.managedClubId, !!u.managedTeamId))
+}
+
+// GET /api/articles/:id (public): one article with its visible comments
 export const getArticleById = async (req: Request, res: Response) => {
   try {
     const article = await prisma.article.findUnique({
@@ -40,6 +60,7 @@ export const getArticleById = async (req: Request, res: Response) => {
       include: {
         author: { select: { name: true } },
         club: { select: { name: true } },
+        team: { select: { name: true } },
         comments: {
           where: { isApproved: true },
           include: { user: { select: { name: true } } },
@@ -48,22 +69,25 @@ export const getArticleById = async (req: Request, res: Response) => {
       }
     })
 
-    if (!article) return sendError(res, 'Article not found', 404)
+    if (!article || article.status !== 'PUBLISHED') return sendError(res, 'Article not found', 404)
     return sendSuccess(res, article)
   } catch (error) {
     return sendError(res, 'Failed to fetch article', 500, error)
   }
 }
 
-// POST /api/articles
+// POST /api/articles (leader for their own group, or admin)
 export const createArticle = async (req: AuthRequest, res: Response) => {
   try {
     const u = req.user!
-    const { title, content, tags } = req.body
+    const { title, content } = req.body
+    const category = req.body.category as ArticleCategory
+    const tags: string[] = Array.isArray(req.body.tags)
+      ? req.body.tags.map((t: unknown) => String(t).trim().toLowerCase()).filter(Boolean).slice(0, 8)
+      : []
 
     let clubId: string | undefined
     let teamId: string | undefined
-    let isUniversityWide = false
     if (u.role === 'CLUB_LEADER') {
       clubId = u.managedClubId ?? undefined
       teamId = u.managedTeamId ?? undefined
@@ -71,22 +95,25 @@ export const createArticle = async (req: AuthRequest, res: Response) => {
     } else {
       clubId = req.body.clubId || undefined
       teamId = req.body.teamId || undefined
-      isUniversityWide = req.body.isUniversityWide ?? false
+    }
+
+    const allowed = allowedArticleCategories(u.role, !!clubId, !!teamId)
+    if (!allowed.includes(category)) {
+      return sendError(res, `You can't post ${String(category).toLowerCase()} news. Allowed: ${allowed.join(', ')}`, 403)
     }
 
     const article = await prisma.article.create({
       data: {
-        title, content,
+        title, content, tags, category,
         authorId: u.id,
         status: u.role === 'ADMIN' ? 'PUBLISHED' : 'PENDING',
-        isUniversityWide,
-        tags: tags ?? [],
+        isUniversityWide: category === 'UNIVERSITY',
         ...(clubId ? { clubId } : {}),
         ...(teamId ? { teamId } : {})
       }
     })
 
-    return sendSuccess(res, article, u.role === 'ADMIN' ? 'Article published' : 'Article submitted for review', 201)
+    return sendSuccess(res, article, u.role === 'ADMIN' ? 'Article published' : 'Article submitted for approval', 201)
   } catch (error) {
     return sendError(res, 'Failed to create article', 500, error)
   }
