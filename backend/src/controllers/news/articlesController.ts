@@ -52,7 +52,7 @@ export const getArticleCategories = async (req: AuthRequest, res: Response) => {
   return sendSuccess(res, allowedArticleCategories(u.role, !!u.managedClubId, !!u.managedTeamId))
 }
 
-// GET /api/articles/:id (public): one article with its visible comments
+// GET /api/articles/:id (public): one published article with its visible comments
 export const getArticleById = async (req: Request, res: Response) => {
   try {
     const article = await prisma.article.findUnique({
@@ -76,7 +76,7 @@ export const getArticleById = async (req: Request, res: Response) => {
   }
 }
 
-// POST /api/articles (leader for their own group, or admin)
+// POST /api/articles (leader for their own group, or admin). Published straight away.
 export const createArticle = async (req: AuthRequest, res: Response) => {
   try {
     const u = req.user!
@@ -106,14 +106,14 @@ export const createArticle = async (req: AuthRequest, res: Response) => {
       data: {
         title, content, tags, category,
         authorId: u.id,
-        status: u.role === 'ADMIN' ? 'PUBLISHED' : 'PENDING',
+        status: 'PUBLISHED',
         isUniversityWide: category === 'UNIVERSITY',
         ...(clubId ? { clubId } : {}),
         ...(teamId ? { teamId } : {})
       }
     })
 
-    return sendSuccess(res, article, u.role === 'ADMIN' ? 'Article published' : 'Article submitted for approval', 201)
+    return sendSuccess(res, article, 'Article published', 201)
   } catch (error) {
     return sendError(res, 'Failed to create article', 500, error)
   }
