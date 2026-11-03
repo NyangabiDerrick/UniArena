@@ -6,8 +6,8 @@ import { usePathname } from "next/navigation"
 import { useSession } from "next-auth/react"
 import {
   LayoutDashboard, Users, Trophy, Calendar, Ticket,
-  Newspaper, Image, MessageSquare, Shield, Settings, Flag, Scale,
-  CalendarPlus, CalendarCheck, FilePlus, FileText, Building2, ClipboardList
+  Newspaper, MessageSquare, Shield, Settings, Flag, Scale,
+  CalendarPlus, CalendarCheck, FilePlus, FileText, Building2, ClipboardList, ImagePlus
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { api } from "@/lib/api"
@@ -25,6 +25,7 @@ const navItems: NavItem[] = [
   { label: "Clubs", href: "/clubs", icon: Users, roles: ["STUDENT","CLUB_LEADER","LECTURER","MODERATOR","ADMIN"] },
   { label: "Manage Club", href: "/clubs/manage", icon: Settings, roles: ["CLUB_LEADER","ADMIN"], needs: "club" },
   { label: "Manage Team", href: "/sports/manage", icon: ClipboardList, roles: ["CLUB_LEADER","ADMIN"], needs: "team" },
+  { label: "Group Images", href: "/clubs/manage/images", icon: ImagePlus, roles: ["CLUB_LEADER","ADMIN"] },
   { label: "Create Event", href: "/clubs/manage/create-event", icon: CalendarPlus, roles: ["CLUB_LEADER","ADMIN"] },
   { label: "Manage Events", href: "/clubs/manage/events", icon: CalendarCheck, roles: ["CLUB_LEADER","ADMIN"] },
   { label: "Post News", href: "/clubs/manage/post-news", icon: FilePlus, roles: ["CLUB_LEADER","ADMIN"] },
@@ -33,7 +34,6 @@ const navItems: NavItem[] = [
   { label: "Events", href: "/events", icon: Calendar, roles: ["STUDENT","CLUB_LEADER","SPORTS_CAPTAIN","LECTURER","MODERATOR","ADMIN"] },
   { label: "My Tickets", href: "/tickets", icon: Ticket, roles: ["STUDENT","CLUB_LEADER","ADMIN"] },
   { label: "News", href: "/news", icon: Newspaper, roles: ["STUDENT","CLUB_LEADER","SPORTS_CAPTAIN","LECTURER","MODERATOR","ADMIN"] },
-  { label: "Gallery", href: "/gallery", icon: Image, roles: ["STUDENT","CLUB_LEADER","SPORTS_CAPTAIN","LECTURER","MODERATOR","ADMIN"] },
   { label: "Messages", href: "/messages", icon: MessageSquare, roles: ["STUDENT","CLUB_LEADER","SPORTS_CAPTAIN","LECTURER","MODERATOR","ADMIN"] },
   { label: "Admin", href: "/admin", icon: Shield, roles: ["ADMIN","MODERATOR"] },
   { label: "Groups", href: "/admin/groups", icon: Building2, roles: ["ADMIN"] },
