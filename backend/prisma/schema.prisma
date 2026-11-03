@@ -127,6 +127,7 @@ model SportsTeam {
 
   squadMembers SquadMember[]
   fixtures     Fixture[]
+  trainingSessions TrainingSession[]
   events       Event[]
   articles     Article[]
   galleries    Gallery[]
@@ -137,6 +138,7 @@ model SquadMember {
   userId      String
   teamId      String
   position    String?
+  jerseyNumber Int?
   isInjured   Boolean  @default(false)
   isAvailable Boolean  @default(true)
   joinedAt    DateTime @default(now())
@@ -145,6 +147,7 @@ model SquadMember {
   team SportsTeam @relation(fields: [teamId], references: [id])
 
   @@unique([userId, teamId])
+  @@unique([teamId, jerseyNumber])
 }
 
 model Fixture {
@@ -459,4 +462,19 @@ enum ArticleCategory {
   CLUB
   SPORTS
   UNIVERSITY
+}
+
+model TrainingSession {
+  id        String   @id @default(cuid())
+  teamId    String
+  dayOfWeek Int
+  startTime String
+  endTime   String
+  venue     String
+  notes     String?
+  createdAt DateTime @default(now())
+
+  team SportsTeam @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@index([teamId])
 }

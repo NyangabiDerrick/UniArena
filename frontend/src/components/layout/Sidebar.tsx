@@ -1,21 +1,34 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useSession } from "next-auth/react"
 import {
   LayoutDashboard, Users, Trophy, Calendar, Ticket,
   Newspaper, Image, MessageSquare, Shield, Settings, Flag, Scale,
-  CalendarPlus, CalendarCheck, FilePlus, Building2
+  CalendarPlus, CalendarCheck, FilePlus, FileText, Building2, ClipboardList
 } from "lucide-react"
+import type { LucideIcon } from "lucide-react"
+import { api } from "@/lib/api"
 
-const navItems = [
+interface NavItem {
+  label: string
+  href: string
+  icon: LucideIcon
+  roles: string[]
+  needs?: "club" | "team"
+}
+
+const navItems: NavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, roles: ["STUDENT","CLUB_LEADER","SPORTS_CAPTAIN","LECTURER","MODERATOR","ADMIN"] },
   { label: "Clubs", href: "/clubs", icon: Users, roles: ["STUDENT","CLUB_LEADER","LECTURER","MODERATOR","ADMIN"] },
-  { label: "Manage Club", href: "/clubs/manage", icon: Settings, roles: ["CLUB_LEADER","ADMIN"] },
+  { label: "Manage Club", href: "/clubs/manage", icon: Settings, roles: ["CLUB_LEADER","ADMIN"], needs: "club" },
+  { label: "Manage Team", href: "/sports/manage", icon: ClipboardList, roles: ["CLUB_LEADER","ADMIN"], needs: "team" },
   { label: "Create Event", href: "/clubs/manage/create-event", icon: CalendarPlus, roles: ["CLUB_LEADER","ADMIN"] },
   { label: "Manage Events", href: "/clubs/manage/events", icon: CalendarCheck, roles: ["CLUB_LEADER","ADMIN"] },
   { label: "Post News", href: "/clubs/manage/post-news", icon: FilePlus, roles: ["CLUB_LEADER","ADMIN"] },
+  { label: "Manage News", href: "/clubs/manage/news", icon: FileText, roles: ["CLUB_LEADER","ADMIN"] },
   { label: "Sports", href: "/sports", icon: Trophy, roles: ["STUDENT","SPORTS_CAPTAIN","LECTURER","MODERATOR","ADMIN"] },
   { label: "Events", href: "/events", icon: Calendar, roles: ["STUDENT","CLUB_LEADER","SPORTS_CAPTAIN","LECTURER","MODERATOR","ADMIN"] },
   { label: "My Tickets", href: "/tickets", icon: Ticket, roles: ["STUDENT","CLUB_LEADER","ADMIN"] },
@@ -30,9 +43,30 @@ const navItems = [
 
 export default function Sidebar() {
   const pathname = usePathname()
-  const { data: session } = useSession()
+  const { data: session, status } = useSession()
   const userRole = session?.user?.role || "STUDENT"
-  const visible = navItems.filter(i => i.roles.includes(userRole))
+  const [leads, setLeads] = useState<{ club: boolean; team: boolean } | null>(null)
+
+  // A leader's current group comes from the database, so it is right even just after an assignment
+  useEffect(() => {
+    if (status !== "authenticated" || userRole !== "CLUB_LEADER") return
+    let cancelled = false
+    api.getProfile()
+      .then(res => {
+        if (!cancelled) setLeads({ club: !!res.data.managedClub, team: !!res.data.managedTeam })
+      })
+      .catch(() => { if (!cancelled) setLeads({ club: true, team: true }) })
+    return () => { cancelled = true }
+  }, [status, userRole])
+
+  const visible = navItems.filter(item => {
+    if (!item.roles.includes(userRole)) return false
+    if (item.needs && userRole === "CLUB_LEADER") {
+      if (!leads) return false
+      return item.needs === "club" ? leads.club : leads.team
+    }
+    return true
+  })
 
   // The most specific matching item is the active one
   const activeHref = visible
