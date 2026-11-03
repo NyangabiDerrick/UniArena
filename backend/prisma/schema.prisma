@@ -218,6 +218,8 @@ model Article {
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
   category ArticleCategory @default(UNIVERSITY)
+  moderationNote  String?
+  removedByAdmin  Boolean @default(false)
 
   author   User        @relation(fields: [authorId], references: [id])
   club     Club?       @relation(fields: [clubId], references: [id])
@@ -350,6 +352,7 @@ enum EventStatus {
   APPROVED
   CANCELLED
   COMPLETED
+  SUSPENDED
 }
 
 enum ArticleStatus {
@@ -357,6 +360,8 @@ enum ArticleStatus {
   PUBLISHED
   REJECTED
   ARCHIVED
+  HIDDEN 
+  REMOVED
 }
 
 enum MediaType {
