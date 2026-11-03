@@ -6,6 +6,8 @@ import { AuthRequest } from '../../middleware/auth'
 
 const who = { id: true, name: true, studentId: true, role: true, isActive: true } as const
 
+const NOUN: Record<string, string> = { COMMENT: 'comment', EVENT: 'event', ARTICLE: 'article', MESSAGE: 'message' }
+
 // GET /api/admin/reports?status=OPEN|RESOLVED|DISMISSED
 export const listReports = async (req: AuthRequest, res: Response) => {
   try {
@@ -67,14 +69,18 @@ export const decideReport = async (req: AuthRequest, res: Response) => {
       return sendError(res, 'Write a short note explaining the warning. The person will see it.', 400)
     }
 
-    const removing = removeContent && report.targetType === 'COMMENT' && !!report.targetId
+    const kind = report.targetType as string
+    const noun = NOUN[kind] ?? 'content'
+    const canRemove = ['COMMENT', 'EVENT', 'ARTICLE'].includes(kind) && !!report.targetId
+    const removing = removeContent && canRemove && action !== 'DISMISS'
+    const takedownReason = note || 'Removed after a report'
 
     let label =
       action === 'DISMISS' ? 'Report dismissed'
       : action === 'SUSPEND' ? 'Report upheld, account suspended'
       : action === 'WARN' ? 'Report upheld, warning issued'
       : 'Report resolved'
-    if (removing) label += ' and comment removed'
+    if (removing) label += ` and ${noun} taken down`
 
     const ops: Prisma.PrismaPromise<unknown>[] = []
 
@@ -97,10 +103,31 @@ export const decideReport = async (req: AuthRequest, res: Response) => {
     }
 
     if (removing) {
-      ops.push(prisma.comment.updateMany({
-        where: { id: report.targetId! },
-        data: { isApproved: false }
-      }))
+      if (kind === 'COMMENT') {
+        ops.push(prisma.comment.updateMany({ where: { id: report.targetId! }, data: { isApproved: false } }))
+      } else if (kind === 'EVENT') {
+        ops.push(prisma.event.updateMany({
+          where: { id: report.targetId!, status: 'APPROVED' },
+          data: { status: 'SUSPENDED', moderationNote: takedownReason, suspendedByAdmin: true }
+        }))
+      } else if (kind === 'ARTICLE') {
+        ops.push(prisma.article.updateMany({
+          where: { id: report.targetId!, status: 'PUBLISHED' },
+          data: { status: 'HIDDEN', moderationNote: takedownReason, removedByAdmin: true }
+        }))
+      }
+
+      // A warning already tells the person. Otherwise tell them their content came down.
+      if (action !== 'WARN') {
+        ops.push(prisma.notification.create({
+          data: {
+            userId: report.reportedId,
+            title: `Your ${noun} was taken down`,
+            message: `An administrator took down your ${noun} after a report. Reason: ${takedownReason}`,
+            type: 'default'
+          }
+        }))
+      }
     }
 
     ops.push(prisma.messageReport.update({
