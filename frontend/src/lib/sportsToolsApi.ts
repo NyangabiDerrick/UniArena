@@ -39,6 +39,14 @@ export interface TeamDetail {
   trainingSessions: TrainingItem[]
 }
 
+export interface FixtureDetails {
+  opposition?: string
+  venue?: string
+  isHome?: boolean
+  scheduledAt?: string
+  notes?: string | null
+}
+
 // Our score and their score, whichever side the fixture was home or away for
 export const scoresOf = (f: FixtureItem) => ({
   ours: f.isHome ? f.homeScore : f.awayScore,
@@ -68,10 +76,17 @@ export const getMyTeam = async () => (await call<TeamSummary>("/api/sports/mine"
 export const getPublicTeam = async (id: string) => (await call<TeamDetail>(`/api/sports/${id}`)).data
 export const getManageView = async (id: string) => (await call<TeamDetail>(`/api/sports/${id}/manage`)).data
 
-export const createFixture = async (id: string, b: { opposition: string; venue: string; isHome: boolean; scheduledAt: string; notes?: string }) =>
-  (await call<null>(`/api/sports/${id}/fixtures`, "POST", b)).message
+export const createFixture = async (
+  id: string,
+  b: { opposition: string; venue: string; isHome: boolean; scheduledAt: string; notes?: string; ourScore?: number; theirScore?: number }
+) => (await call<null>(`/api/sports/${id}/fixtures`, "POST", b)).message
+
+export const updateFixture = async (id: string, fixtureId: string, b: FixtureDetails) =>
+  (await call<null>(`/api/sports/${id}/fixtures/${fixtureId}`, "PUT", b)).message
+
 export const saveResult = async (id: string, fixtureId: string, ours: number, theirs: number) =>
   (await call<null>(`/api/sports/${id}/fixtures/${fixtureId}`, "PUT", { status: "COMPLETED", ourScore: ours, theirScore: theirs })).message
+
 export const deleteFixture = async (id: string, fixtureId: string) =>
   (await call<null>(`/api/sports/${id}/fixtures/${fixtureId}`, "DELETE")).message
 
