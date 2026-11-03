@@ -29,6 +29,8 @@ const badge = (bg: string, text: string): React.CSSProperties => ({
   fontSize: 11, padding: "3px 10px", borderRadius: 99, fontWeight: 500, background: bg, color: text
 })
 
+const statusOf = (e: Event) => (e as { status?: string }).status
+
 export default function EventsPage() {
   const [events, setEvents] = useState<Event[]>([])
   const [loading, setLoading] = useState(true)
@@ -99,14 +101,15 @@ export default function EventsPage() {
               const sold = eventSold(event)
               const spotsLeft = Math.max(0, capacity - sold)
               const pct = capacity ? Math.min(100, Math.round((sold / capacity) * 100)) : 0
+              const cancelled = statusOf(event) === "CANCELLED"
               const ended = !!event.endsAt && new Date(event.endsAt) < new Date()
-              const unavailable = ended || spotsLeft === 0 || !event.isFree
+              const unavailable = cancelled || ended || spotsLeft === 0 || !event.isFree
               const key = eventCategory(event)
               const cat = catColors[key] || { bg: "#F1F5F9", text: "#475569" }
 
               return (
                 <Link key={event.id} href={`/events/${event.id}`} style={{ textDecoration: "none" }}>
-                  <div style={{ background: "white", borderRadius: 14, padding: "22px 24px", border: "1px solid #E4E2DC", transition: "box-shadow 0.2s, transform 0.2s" }}
+                  <div style={{ background: "white", borderRadius: 14, padding: "22px 24px", border: "1px solid #E4E2DC", opacity: cancelled ? 0.75 : 1, transition: "box-shadow 0.2s, transform 0.2s" }}
                     onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.boxShadow = "0 8px 24px rgba(11,29,58,0.10)"; el.style.transform = "translateY(-1px)" }}
                     onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.boxShadow = "none"; el.style.transform = "translateY(0)" }}
                   >
@@ -114,25 +117,30 @@ export default function EventsPage() {
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
                           <span style={badge(cat.bg, cat.text)}>{categoryLabel(key)}</span>
-                          {ended && <span style={badge("#F3F4F6", "#6B7280")}>Ended</span>}
+                          {cancelled && <span style={badge("#FEF2F2", "#DC2626")}>Cancelled</span>}
+                          {!cancelled && ended && <span style={badge("#F3F4F6", "#6B7280")}>Ended</span>}
                           {event.isFree && <span style={badge("#F0FDF4", "#15803D")}>Free</span>}
-                          {!ended && spotsLeft === 0 && <span style={badge("#FEF2F2", "#DC2626")}>Sold out</span>}
+                          {!cancelled && !ended && spotsLeft === 0 && <span style={badge("#FEF2F2", "#DC2626")}>Sold out</span>}
                         </div>
 
-                        <h3 style={{ fontSize: 15, fontWeight: 600, color: "#0B1D3A", marginBottom: 6 }}>{event.title}</h3>
+                        <h3 style={{ fontSize: 15, fontWeight: 600, color: "#0B1D3A", marginBottom: 6, textDecoration: cancelled ? "line-through" : "none" }}>{event.title}</h3>
                         <p style={{ fontSize: 13, color: "#6B6962", marginBottom: 14, lineHeight: 1.5 }}>{event.description}</p>
 
                         <div style={{ display: "flex", flexWrap: "wrap", gap: 16, fontSize: 12, color: "#9CA3AF", marginBottom: 14 }}>
                           <span style={{ display: "flex", alignItems: "center", gap: 5 }}><Calendar size={13} />{formatEventDate(event)}</span>
                           <span style={{ display: "flex", alignItems: "center", gap: 5 }}><Clock size={13} />{formatEventTime(event)}</span>
                           <span style={{ display: "flex", alignItems: "center", gap: 5 }}><MapPin size={13} />{event.venue}</span>
-                          <span style={{ display: "flex", alignItems: "center", gap: 5 }}><Users size={13} />{spotsLeft} spots left</span>
+                          {!cancelled && <span style={{ display: "flex", alignItems: "center", gap: 5 }}><Users size={13} />{spotsLeft} spots left</span>}
                         </div>
 
-                        <div style={{ height: 4, background: "#F3F4F6", borderRadius: 99, overflow: "hidden", maxWidth: 300 }}>
-                          <div style={{ height: "100%", borderRadius: 99, background: pct >= 90 ? "#DC2626" : pct >= 70 ? "#F97316" : "#0B1D3A", width: `${pct}%` }} />
-                        </div>
-                        <p style={{ fontSize: 11, color: "#9CA3AF", marginTop: 4 }}>{sold} / {capacity} registered</p>
+                        {!cancelled && (
+                          <>
+                            <div style={{ height: 4, background: "#F3F4F6", borderRadius: 99, overflow: "hidden", maxWidth: 300 }}>
+                              <div style={{ height: "100%", borderRadius: 99, background: pct >= 90 ? "#DC2626" : pct >= 70 ? "#F97316" : "#0B1D3A", width: `${pct}%` }} />
+                            </div>
+                            <p style={{ fontSize: 11, color: "#9CA3AF", marginTop: 4 }}>{sold} / {capacity} registered</p>
+                          </>
+                        )}
                       </div>
 
                       <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 12, flexShrink: 0 }}>
@@ -143,7 +151,7 @@ export default function EventsPage() {
                           fontSize: 12, fontWeight: 600, padding: "8px 18px", borderRadius: 8,
                           background: unavailable ? "#F3F4F6" : "#0B1D3A", color: unavailable ? "#9CA3AF" : "white"
                         }}>
-                          {ended ? "Ended" : spotsLeft === 0 ? "Sold out" : event.isFree ? "RSVP" : "Payments soon"}
+                          {cancelled ? "Cancelled" : ended ? "Ended" : spotsLeft === 0 ? "Sold out" : event.isFree ? "RSVP" : "Payments soon"}
                         </span>
                       </div>
                     </div>

@@ -13,14 +13,14 @@ const allowedEventCategories = (role: string, hasClub: boolean, hasTeam: boolean
   return []
 }
 
-// GET /api/events (public): approved events with how many tickets are taken
+// GET /api/events (public): published and cancelled events (suspended ones are hidden)
 export const getEvents = async (req: Request, res: Response) => {
   try {
     const { search, free } = req.query
 
     const events = await prisma.event.findMany({
       where: {
-        status: 'APPROVED',
+        status: { in: ['APPROVED', 'CANCELLED'] },
         ...(free === 'true' ? { isFree: true } : {}),
         ...(search ? {
           OR: [
@@ -63,14 +63,16 @@ export const getEventById = async (req: Request, res: Response) => {
       }
     })
 
-    if (!event) return sendError(res, 'Event not found', 404)
+    if (!event || (event.status !== 'APPROVED' && event.status !== 'CANCELLED')) {
+      return sendError(res, 'Event not found', 404)
+    }
     return sendSuccess(res, event)
   } catch (error) {
     return sendError(res, 'Failed to fetch event', 500, error)
   }
 }
 
-// POST /api/events (leader for their own group, or admin)
+// POST /api/events (leader for their own group, or admin). Published straight away.
 export const createEvent = async (req: AuthRequest, res: Response) => {
   try {
     const u = req.user!
@@ -105,14 +107,14 @@ export const createEvent = async (req: AuthRequest, res: Response) => {
         endsAt: end,
         capacity: parseInt(capacity),
         isFree: isFree ?? false,
-        status: u.role === 'ADMIN' ? 'APPROVED' : 'PENDING',
+        status: 'APPROVED',
         createdBy: u.id,
         ...(clubId ? { clubId } : {}),
         ...(teamId ? { teamId } : {})
       }
     })
 
-    return sendSuccess(res, event, u.role === 'ADMIN' ? 'Event published' : 'Event submitted for approval', 201)
+    return sendSuccess(res, event, 'Event published', 201)
   } catch (error) {
     return sendError(res, 'Failed to create event', 500, error)
   }
@@ -125,7 +127,10 @@ export const purchaseTicket = async (req: AuthRequest, res: Response) => {
     const eventId = req.params.id
 
     const event = await prisma.event.findUnique({ where: { id: eventId } })
-    if (!event || event.status !== 'APPROVED') return sendError(res, 'Event not found', 404)
+    if (!event || (event.status !== 'APPROVED' && event.status !== 'CANCELLED')) {
+      return sendError(res, 'Event not found', 404)
+    }
+    if (event.status === 'CANCELLED') return sendError(res, 'This event was cancelled', 400)
     if (event.endsAt < new Date()) return sendError(res, 'This event has already ended', 400)
 
     // Paid tickets stay off until a payment provider is connected
