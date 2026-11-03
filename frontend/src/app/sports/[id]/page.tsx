@@ -4,6 +4,9 @@ import { useState, useEffect, use } from "react"
 import MainLayout from "@/components/layout/MainLayout"
 import { Calendar, MapPin, Users, Clock } from "lucide-react"
 import * as T from "@/lib/sportsToolsApi"
+import { imageSrc } from "@/lib/groupImagesApi"
+
+type TeamWithImages = T.TeamDetail & { logoUrl?: string | null; bannerUrl?: string | null }
 
 const card: React.CSSProperties = { background: "white", borderRadius: 16, border: "1px solid #E4E2DC", padding: 24 }
 const h2: React.CSSProperties = { fontFamily: "'Playfair Display', serif", fontSize: 17, color: "#0B1D3A", marginBottom: 14 }
@@ -11,13 +14,13 @@ const when = (d: string) => new Date(d).toLocaleString("en-GB", { weekday: "shor
 
 export default function TeamPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
-  const [team, setTeam] = useState<T.TeamDetail | null>(null)
+  const [team, setTeam] = useState<TeamWithImages | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     let cancelled = false
     T.getPublicTeam(id)
-      .then(t => { if (!cancelled) setTeam(t) })
+      .then(t => { if (!cancelled) setTeam(t as TeamWithImages) })
       .catch(() => { if (!cancelled) setTeam(null) })
       .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
@@ -25,6 +28,9 @@ export default function TeamPage({ params }: { params: Promise<{ id: string }> }
 
   if (loading) return <MainLayout><p style={{ textAlign: "center", padding: "80px 0", fontSize: 14, color: "#9CA3AF" }}>Loading...</p></MainLayout>
   if (!team) return <MainLayout><p style={{ textAlign: "center", padding: "80px 0", fontSize: 14, color: "#6B6962" }}>Team not found</p></MainLayout>
+
+  const banner = imageSrc(team.bannerUrl)
+  const logo = imageSrc(team.logoUrl)
 
   const upcoming = team.fixtures.filter(f => f.status !== "COMPLETED")
   const results = team.fixtures.filter(f => f.status === "COMPLETED").reverse()
@@ -39,10 +45,21 @@ export default function TeamPage({ params }: { params: Promise<{ id: string }> }
   return (
     <MainLayout>
       <div style={{ maxWidth: 940, margin: "0 auto", display: "flex", flexDirection: "column", gap: 20 }}>
-        <div style={{ ...card, background: "#0B1D3A", border: "none", color: "white" }}>
-          <p style={{ fontSize: 11, letterSpacing: "0.12em", color: "#C9A84C", marginBottom: 8 }}>{team.sport.toUpperCase()}{team.season ? ` · ${team.season}` : ""}</p>
-          <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: 30, fontWeight: 700, marginBottom: 10 }}>{team.name}</h1>
-          {team.description && <p style={{ fontSize: 14, color: "rgba(255,255,255,0.7)", lineHeight: 1.6, marginBottom: 16 }}>{team.description}</p>}
+        <div style={{
+          ...card, border: "none", color: "white", position: "relative", overflow: "hidden",
+          background: banner ? `linear-gradient(rgba(11,29,58,0.72), rgba(11,29,58,0.88)), url(${banner}) center / cover` : "#0B1D3A"
+        }}>
+          <div style={{ display: "flex", gap: 18, alignItems: "center", marginBottom: 14 }}>
+            {logo && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={logo} alt={`${team.name} logo`} style={{ width: 72, height: 72, borderRadius: 14, objectFit: "cover", border: "2px solid rgba(255,255,255,0.3)", flexShrink: 0 }} />
+            )}
+            <div>
+              <p style={{ fontSize: 11, letterSpacing: "0.12em", color: "#C9A84C", marginBottom: 6 }}>{team.sport.toUpperCase()}{team.season ? ` · ${team.season}` : ""}</p>
+              <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: 30, fontWeight: 700 }}>{team.name}</h1>
+            </div>
+          </div>
+          {team.description && <p style={{ fontSize: 14, color: "rgba(255,255,255,0.75)", lineHeight: 1.6, marginBottom: 16 }}>{team.description}</p>}
           <div style={{ display: "flex", gap: 28, fontSize: 13 }}>
             <span><strong style={{ fontSize: 20 }}>{w}</strong> won</span>
             <span><strong style={{ fontSize: 20 }}>{d}</strong> drawn</span>

@@ -6,6 +6,7 @@ import { useSession } from "next-auth/react"
 import { Users, Calendar, FileText, ArrowLeft, CheckCircle, MapPin } from "lucide-react"
 import Link from "next/link"
 import { api } from "@/lib/api"
+import { imageSrc } from "@/lib/groupImagesApi"
 import { errorMessage } from "@/lib/types"
 import type { Club, Committee, Event, Membership } from "@/lib/types"
 
@@ -70,6 +71,9 @@ export default function ClubProfilePage({ params }: { params: Promise<{ id: stri
     )
   }
 
+  const banner = imageSrc(club.bannerUrl)
+  const logo = imageSrc(club.logoUrl)
+
   const joinButton = () => {
     if (session?.user?.role !== "STUDENT" || membership === undefined) return null
     const base: React.CSSProperties = {
@@ -94,13 +98,19 @@ export default function ClubProfilePage({ params }: { params: Promise<{ id: stri
           <ArrowLeft size={15} /> Back to Clubs
         </Link>
 
-        <div style={{ background: "linear-gradient(135deg, #2563EB, #1D4ED8)", borderRadius: "16px 16px 0 0", height: 170 }} />
+        <div style={{
+          borderRadius: "16px 16px 0 0", height: 170,
+          background: banner ? `url(${banner}) center / cover` : "linear-gradient(135deg, #2563EB, #1D4ED8)"
+        }} />
 
         <div style={{ background: "white", borderRadius: "0 0 16px 16px", padding: "0 28px 24px", border: "1px solid #E4E2DC", borderTop: "none", marginBottom: 20 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 16 }}>
             <div style={{ display: "flex", alignItems: "flex-end", gap: 18 }}>
-              <div style={{ width: 72, height: 72, borderRadius: 16, background: "#EFF6FF", color: "#1D4ED8", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: 28, border: "4px solid white", marginTop: -36, flexShrink: 0, boxShadow: "0 4px 12px rgba(11,29,58,0.12)" }}>
-                {club.name.charAt(0)}
+              <div style={{ width: 72, height: 72, borderRadius: 16, background: "#EFF6FF", color: "#1D4ED8", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: 28, border: "4px solid white", marginTop: -36, flexShrink: 0, boxShadow: "0 4px 12px rgba(11,29,58,0.12)" }}>
+                {logo ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={logo} alt={`${club.name} logo`} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                ) : club.name.charAt(0)}
               </div>
               <div style={{ paddingBottom: 4 }}>
                 <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: 24, fontWeight: 700, color: "#0B1D3A", marginBottom: 6 }}>{club.name}</h1>

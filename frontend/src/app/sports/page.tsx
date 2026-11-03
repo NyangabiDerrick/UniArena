@@ -1,41 +1,38 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import MainLayout from "@/components/layout/MainLayout"
 import { Search, Users } from "lucide-react"
 import Link from "next/link"
 import { api } from "@/lib/api"
-import { useEffect } from "react"
+import { imageSrc } from "@/lib/groupImagesApi"
 import type { Team } from "@/lib/types"
 
-const sports = ["All","Football","Basketball","Swimming","Athletics","Rugby","Tennis","Cricket","Volleyball"]
+type TeamCard = Team & { logoUrl?: string | null }
 
-const sportEmoji: Record<string,string> = { Football:"⚽", Basketball:"🏀", Swimming:"🏊", Athletics:"🏃", Rugby:"🏉", Tennis:"🎾", Cricket:"🏏", Volleyball:"🏐" }
+const sports = ["All", "Football", "Basketball", "Swimming", "Athletics", "Rugby", "Tennis", "Cricket", "Volleyball"]
+
+const sportEmoji: Record<string, string> = { Football: "⚽", Basketball: "🏀", Swimming: "🏊", Athletics: "🏃", Rugby: "🏉", Tennis: "🎾", Cricket: "🏏", Volleyball: "🏐" }
 
 export default function SportsPage() {
-  const [teams, setTeams] = useState<Team[]>([])
+  const [teams, setTeams] = useState<TeamCard[]>([])
   const [search, setSearch] = useState("")
   const [selected, setSelected] = useState("All")
 
   useEffect(() => {
-    const fetchTeams = async () => {
-      try {
-        const res = await api.getTeams({ sport: selected, search })
-        setTeams(res.data)
-      } catch (err) {
-        console.error('Failed to fetch teams:', err)
-      }
-    }
-    fetchTeams()
+    let cancelled = false
+    const timer = setTimeout(() => {
+      api.getTeams({ sport: selected, search })
+        .then(res => { if (!cancelled) setTeams(res.data as TeamCard[]) })
+        .catch(err => console.error("Failed to fetch teams:", err))
+    }, 250)
+    return () => { cancelled = true; clearTimeout(timer) }
   }, [search, selected])
-
-  const filtered = teams
 
   return (
     <MainLayout>
       <div style={{ maxWidth: 1080, margin: "0 auto" }}>
 
-        {/* Header */}
         <div style={{ marginBottom: 24 }}>
           <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: 28, fontWeight: 700, color: "#0B1D3A", marginBottom: 6 }}>
             Sports Teams
@@ -45,7 +42,6 @@ export default function SportsPage() {
           </p>
         </div>
 
-        {/* Search */}
         <div style={{ position: "relative", marginBottom: 16 }}>
           <Search size={15} style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: "#9CA3AF" }} />
           <input
@@ -63,7 +59,6 @@ export default function SportsPage() {
           />
         </div>
 
-        {/* Filters */}
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 24 }}>
           {sports.map(s => (
             <button key={s} onClick={() => setSelected(s)} style={{
@@ -77,69 +72,71 @@ export default function SportsPage() {
           ))}
         </div>
 
-        {/* Grid */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 20 }}>
-          {filtered.map(team => (
-            <Link key={team.id} href={`/sports/${team.id}`} style={{ textDecoration: "none" }}>
-              <div style={{
-                background: "white", borderRadius: 14, padding: "22px",
-                border: "1px solid #E4E2DC",
-                transition: "box-shadow 0.2s, transform 0.2s",
-                cursor: "pointer"
-              }}
-                onMouseEnter={e => {
-                  const el = e.currentTarget as HTMLElement
-                  el.style.boxShadow = "0 8px 24px rgba(11,29,58,0.10)"
-                  el.style.transform = "translateY(-2px)"
-                }}
-                onMouseLeave={e => {
-                  const el = e.currentTarget as HTMLElement
-                  el.style.boxShadow = "none"
-                  el.style.transform = "translateY(0)"
-                }}
-              >
-                {/* Sport icon */}
+          {teams.map(team => {
+            const logo = imageSrc(team.logoUrl)
+            return (
+              <Link key={team.id} href={`/sports/${team.id}`} style={{ textDecoration: "none" }}>
                 <div style={{
-                  width: 48, height: 48, borderRadius: 12,
-                  background: "#FFF7ED",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 22, marginBottom: 14
-                }}>
-                  {sportEmoji[team.sport] || "🏆"}
-                </div>
+                  background: "white", borderRadius: 14, padding: "22px",
+                  border: "1px solid #E4E2DC",
+                  transition: "box-shadow 0.2s, transform 0.2s",
+                  cursor: "pointer"
+                }}
+                  onMouseEnter={e => {
+                    const el = e.currentTarget as HTMLElement
+                    el.style.boxShadow = "0 8px 24px rgba(11,29,58,0.10)"
+                    el.style.transform = "translateY(-2px)"
+                  }}
+                  onMouseLeave={e => {
+                    const el = e.currentTarget as HTMLElement
+                    el.style.boxShadow = "none"
+                    el.style.transform = "translateY(0)"
+                  }}
+                >
+                  <div style={{
+                    width: 48, height: 48, borderRadius: 12, overflow: "hidden",
+                    background: "#FFF7ED",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: 22, marginBottom: 14
+                  }}>
+                    {logo ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={logo} alt={`${team.name} logo`} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    ) : (sportEmoji[team.sport] || "🏆")}
+                  </div>
 
-                {/* Info */}
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
-                  <h3 style={{ fontSize: 14, fontWeight: 600, color: "#0B1D3A" }}>{team.name}</h3>
-                  <span style={{
-                    fontSize: 10, padding: "2px 8px", borderRadius: 99,
-                    background: "#FFF7ED", color: "#C2410C", fontWeight: 500
-                  }}>{team.sport}</span>
-                </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
+                    <h3 style={{ fontSize: 14, fontWeight: 600, color: "#0B1D3A" }}>{team.name}</h3>
+                    <span style={{
+                      fontSize: 10, padding: "2px 8px", borderRadius: 99,
+                      background: "#FFF7ED", color: "#C2410C", fontWeight: 500
+                    }}>{team.sport}</span>
+                  </div>
 
-                <p style={{ fontSize: 12, color: "#6B6962", lineHeight: 1.5, marginBottom: 16 }}>
-                  {team.description}
-                </p>
+                  <p style={{ fontSize: 12, color: "#6B6962", lineHeight: 1.5, marginBottom: 16 }}>
+                    {team.description}
+                  </p>
 
-                {/* Record */}
-                <div style={{
-                  display: "flex", alignItems: "center", gap: 16,
-                  paddingTop: 14, borderTop: "1px solid #F3F4F6"
-                }}>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: "#16A34A" }}>W {team.wins ?? 0}</span>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: "#DC2626" }}>L {team.losses ?? 0}</span>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: "#6B7280" }}>D {team.draws ?? 0}</span>
-                  <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 4, color: "#9CA3AF" }}>
-                    <Users size={12} />
-                    <span style={{ fontSize: 11 }}>{team.memberCount ?? team._count?.squadMembers ?? 0}</span>
+                  <div style={{
+                    display: "flex", alignItems: "center", gap: 16,
+                    paddingTop: 14, borderTop: "1px solid #F3F4F6"
+                  }}>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: "#16A34A" }}>W {team.wins ?? 0}</span>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: "#DC2626" }}>L {team.losses ?? 0}</span>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: "#6B7280" }}>D {team.draws ?? 0}</span>
+                    <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 4, color: "#9CA3AF" }}>
+                      <Users size={12} />
+                      <span style={{ fontSize: 11 }}>{team.memberCount ?? team._count?.squadMembers ?? 0}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </Link>
-          ))}
+              </Link>
+            )
+          })}
         </div>
 
-        {filtered.length === 0 && (
+        {teams.length === 0 && (
           <div style={{ textAlign: "center", padding: "60px 0" }}>
             <p style={{ fontSize: 32, marginBottom: 12 }}>🔍</p>
             <p style={{ fontSize: 14, color: "#6B6962" }}>No teams found</p>
