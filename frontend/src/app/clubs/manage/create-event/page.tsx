@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import Link from "next/link"
 import { useSession } from "next-auth/react"
 import MainLayout from "@/components/layout/MainLayout"
 import { inputStyle, labelStyle, primaryButton, errorBox, successBox } from "@/components/layout/AuthShell"
@@ -70,7 +71,8 @@ export default function CreateEventPage() {
       <div style={{ maxWidth: 680, margin: "0 auto" }}>
         <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: 28, fontWeight: 700, color: "#0B1D3A", marginBottom: 6 }}>Create an event</h1>
         <p style={{ fontSize: 14, color: "#6B6962", marginBottom: 28 }}>
-          {role === "ADMIN" ? "Events you create are published straight away." : "Your event is reviewed by an administrator before it appears."}
+          Events are published straight away. You can cancel or suspend one later under{" "}
+          <Link href="/clubs/manage/events" style={{ color: "#0B1D3A", textDecoration: "underline" }}>Manage events</Link>.
         </p>
 
         {error && <div style={errorBox}>{error}</div>}
@@ -132,7 +134,7 @@ export default function CreateEventPage() {
             </div>
 
             <button type="submit" disabled={busy || !allowed} style={primaryButton(busy || !allowed)}>
-              {busy ? "Saving..." : role === "ADMIN" ? "Publish event" : "Submit for approval"}
+              {busy ? "Publishing..." : "Publish event"}
             </button>
           </form>
         )}

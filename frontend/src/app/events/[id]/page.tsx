@@ -17,6 +17,8 @@ interface EventData {
   endsAt: string
   capacity: number
   isFree: boolean
+  status: string
+  moderationNote: string | null
   club: { name: string } | null
   team: { name: string } | null
   creator: { name: string } | null
@@ -90,6 +92,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
   }
 
   const spotsLeft = Math.max(0, event.capacity - event._count.tickets)
+  const cancelled = event.status === "CANCELLED"
   const ended = new Date(event.endsAt) < new Date()
   const organiser = event.club?.name || event.team?.name || event.creator?.name || "UniArena"
 
@@ -97,16 +100,16 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
     if (code) {
       return (
         <div style={{ textAlign: "center" }}>
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 8, color: "#15803D", fontWeight: 600, fontSize: 14, marginBottom: 14 }}>
-            <CheckCircle size={18} /> You&apos;re going
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 8, color: cancelled ? "#DC2626" : "#15803D", fontWeight: 600, fontSize: 14, marginBottom: 14 }}>
+            <CheckCircle size={18} /> {cancelled ? "Your ticket is void: event cancelled" : "You're going"}
           </div>
           <p style={{ fontSize: 11, color: "#9CA3AF", marginBottom: 4 }}>Ticket code</p>
-          <p style={{ fontFamily: "monospace", fontSize: 16, fontWeight: 700, color: "#0B1D3A", background: "#F8F7F4", padding: "8px 12px", borderRadius: 8, marginBottom: 14 }}>{code}</p>
+          <p style={{ fontFamily: "monospace", fontSize: 16, fontWeight: 700, color: "#0B1D3A", background: "#F8F7F4", padding: "8px 12px", borderRadius: 8, marginBottom: 14, textDecoration: cancelled ? "line-through" : "none" }}>{code}</p>
           <Link href="/tickets" style={{ fontSize: 13, color: "#0B1D3A", textDecoration: "underline" }}>View all my tickets</Link>
         </div>
       )
     }
-    const blocked = ended ? "This event has ended" : !event.isFree ? "Payments coming soon" : spotsLeft === 0 ? "Sold out" : ""
+    const blocked = cancelled ? "This event was cancelled" : ended ? "This event has ended" : !event.isFree ? "Payments coming soon" : spotsLeft === 0 ? "Sold out" : ""
     return (
       <>
         <button onClick={rsvp} disabled={working || !!blocked}
@@ -115,7 +118,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
             cursor: blocked || working ? "not-allowed" : "pointer" }}>
           {blocked || (working ? "Confirming..." : "Confirm RSVP")}
         </button>
-        {!event.isFree && !ended && (
+        {!event.isFree && !ended && !cancelled && (
           <p style={{ fontSize: 12, color: "#9CA3AF", textAlign: "center", marginTop: 12 }}>
             Online payments will be available soon.
           </p>
@@ -128,7 +131,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
     { Icon: Calendar, label: "Date", value: dateOf(event.startsAt), bg: "#EFF6FF", color: "#1D4ED8" },
     { Icon: Clock, label: "Time", value: `${timeOf(event.startsAt)} – ${timeOf(event.endsAt)}`, bg: "#F5F3FF", color: "#6D28D9" },
     { Icon: MapPin, label: "Venue", value: event.venue, bg: "#F0FDF4", color: "#15803D" },
-    { Icon: Users, label: "Spots", value: `${spotsLeft} left of ${event.capacity}`, bg: "#FFF7ED", color: "#C2410C" }
+    { Icon: Users, label: "Spots", value: cancelled ? "Cancelled" : `${spotsLeft} left of ${event.capacity}`, bg: "#FFF7ED", color: "#C2410C" }
   ]
 
   return (
@@ -138,12 +141,20 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
           <ArrowLeft size={15} /> Back to Events
         </Link>
 
+        {cancelled && (
+          <div style={{ padding: "14px 18px", borderRadius: 12, marginBottom: 20, background: "#FEF2F2", border: "1px solid #FECACA", color: "#991B1B", fontSize: 14, lineHeight: 1.6 }}>
+            <strong>This event was cancelled.</strong>
+            {event.moderationNote && <> Reason: {event.moderationNote}</>}
+          </div>
+        )}
+
         <div style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: 24, alignItems: "start" }}>
           <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
             <div style={card}>
               <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
                 {event.isFree && <span style={{ fontSize: 11, padding: "4px 12px", borderRadius: 99, background: "#F0FDF4", color: "#15803D", fontWeight: 500 }}>Free</span>}
-                {ended && <span style={{ fontSize: 11, padding: "4px 12px", borderRadius: 99, background: "#F3F4F6", color: "#6B7280", fontWeight: 500 }}>Ended</span>}
+                {cancelled && <span style={{ fontSize: 11, padding: "4px 12px", borderRadius: 99, background: "#FEF2F2", color: "#DC2626", fontWeight: 500 }}>Cancelled</span>}
+                {!cancelled && ended && <span style={{ fontSize: 11, padding: "4px 12px", borderRadius: 99, background: "#F3F4F6", color: "#6B7280", fontWeight: 500 }}>Ended</span>}
               </div>
               <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: 26, fontWeight: 700, color: "#0B1D3A", marginBottom: 6 }}>{event.title}</h1>
               <p style={{ fontSize: 13, color: "#9CA3AF" }}>Organised by {organiser}</p>
