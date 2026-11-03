@@ -9,6 +9,9 @@ const reasonLabel: Record<string, string> = {
   SPAM: "Spam", HARASSMENT: "Harassment or abuse", INAPPROPRIATE: "Inappropriate content", OTHER: "Something else"
 }
 
+const typeLabel: Record<string, string> = { MESSAGE: "Message", COMMENT: "Comment", EVENT: "Event", ARTICLE: "Article" }
+const takedownWord: Record<string, string> = { COMMENT: "comment", EVENT: "event", ARTICLE: "article" }
+
 const when = (d: string) =>
   new Date(d).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })
 
@@ -47,8 +50,9 @@ export default function ReportsPage() {
     }
     if (action === "SUSPEND" && !window.confirm(`Suspend ${r.reported.name}? They will be signed out and unable to sign in. They can appeal.`)) return
 
+    const canTakeDown = r.targetType in takedownWord
     try {
-      await decideReport(r.id, action, note, r.targetType === "COMMENT" ? (removeFlags[r.id] ?? true) : false)
+      await decideReport(r.id, action, note, canTakeDown ? (removeFlags[r.id] ?? true) : false)
       setNotice(
         action === "DISMISS" ? "Report dismissed."
         : action === "SUSPEND" ? `${r.reported.name} was suspended.`
@@ -110,7 +114,7 @@ export default function ReportsPage() {
                 </div>
                 <div style={{ display: "flex", gap: 8, alignSelf: "flex-start", flexWrap: "wrap" }}>
                   <span style={{ fontSize: 11, padding: "4px 12px", borderRadius: 99, background: "#EFF6FF", color: "#1D4ED8", fontWeight: 500 }}>
-                    {r.targetType === "COMMENT" ? "Comment" : "Message"}
+                    {typeLabel[r.targetType] ?? r.targetType}
                   </span>
                   <span style={{ fontSize: 11, padding: "4px 12px", borderRadius: 99, background: "#FFF7ED", color: "#C2410C", fontWeight: 500 }}>
                     {reasonLabel[r.reason] || r.reason}
@@ -149,11 +153,11 @@ export default function ReportsPage() {
                     onChange={e => setNotes(prev => ({ ...prev, [r.id]: e.target.value }))}
                     style={{ width: "100%", padding: "10px 12px", fontSize: 13, borderRadius: 8, border: "1.5px solid #E4E2DC", outline: "none", marginBottom: 12, fontFamily: "'Inter', sans-serif" }} />
 
-                  {r.targetType === "COMMENT" && (
+                  {r.targetType in takedownWord && (
                     <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#374151", marginBottom: 14, cursor: "pointer" }}>
                       <input type="checkbox" checked={removeFlags[r.id] ?? true}
                         onChange={e => setRemoveFlags(prev => ({ ...prev, [r.id]: e.target.checked }))} />
-                      Also remove this comment from the article (when warning or resolving)
+                      Also take this {takedownWord[r.targetType]} down (when warning, resolving or suspending)
                     </label>
                   )}
 

@@ -4,9 +4,11 @@ import { useState, useEffect, use } from "react"
 import Link from "next/link"
 import { useSession } from "next-auth/react"
 import MainLayout from "@/components/layout/MainLayout"
-import { ArrowLeft, Calendar, Clock, MapPin, Users, CheckCircle } from "lucide-react"
+import ReportDialog from "@/components/layout/ReportDialog"
+import { ArrowLeft, Calendar, Clock, MapPin, Users, CheckCircle, Flag } from "lucide-react"
 import { api } from "@/lib/api"
 import { getMyTickets } from "@/lib/ticketsApi"
+import { reportEvent } from "@/lib/reportContentApi"
 
 interface EventData {
   id: string
@@ -42,6 +44,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
   const [error, setError] = useState("")
   const [code, setCode] = useState("")
   const [reloadKey, setReloadKey] = useState(0)
+  const [reporting, setReporting] = useState(false)
 
   useEffect(() => {
     api.getEvent(id)
@@ -194,9 +197,29 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
             {message && <div style={{ padding: "10px 14px", borderRadius: 8, marginBottom: 14, background: "#F0FDF4", color: "#166534", border: "1px solid #BBF7D0", fontSize: 13 }}>{message}</div>}
             {error && <div style={{ padding: "10px 14px", borderRadius: 8, marginBottom: 14, background: "#FEF2F2", color: "#991B1B", border: "1px solid #FECACA", fontSize: 13 }}>{error}</div>}
             {action()}
+            {status === "authenticated" && (
+              <button onClick={() => { setReporting(true); setMessage(""); setError("") }}
+                style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, width: "100%", marginTop: 18, padding: 8, background: "none", border: "none", cursor: "pointer", fontSize: 12, color: "#9CA3AF", fontFamily: "'Inter', sans-serif" }}>
+                <Flag size={12} /> Report this event
+              </button>
+            )}
           </div>
         </div>
       </div>
+
+      {reporting && (
+        <ReportDialog
+          title="Report this event"
+          intro="An administrator will review the event. The organiser isn't told who reported it."
+          preview={event.title}
+          onClose={() => setReporting(false)}
+          onSubmit={async (reason, details) => {
+            const msg = await reportEvent(id, reason, details)
+            setMessage(msg)
+            setReporting(false)
+          }}
+        />
+      )}
     </MainLayout>
   )
 }

@@ -417,6 +417,8 @@ model MessageReport {
 enum ReportTarget {
   MESSAGE
   COMMENT
+  EVENT
+  ARTICLE
 }
 
 enum AppealStatus {

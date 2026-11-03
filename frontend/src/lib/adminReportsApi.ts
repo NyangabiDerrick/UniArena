@@ -17,6 +17,8 @@ export interface EvidenceLine {
   context?: string
 }
 
+export type ReportTargetType = "MESSAGE" | "COMMENT" | "EVENT" | "ARTICLE"
+
 export interface Report {
   id: string
   reason: string
@@ -24,7 +26,7 @@ export interface Report {
   status: "OPEN" | "RESOLVED" | "DISMISSED"
   resolution: string | null
   createdAt: string
-  targetType: "MESSAGE" | "COMMENT"
+  targetType: ReportTargetType
   warningCount: number
   reporter: ReportPerson
   reported: ReportPerson
