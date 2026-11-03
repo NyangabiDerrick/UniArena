@@ -13,6 +13,7 @@ const router = Router()
 
 const own = [authenticate, requireGroupManager('team')]
 const time = (field: string) => body(field).matches(/^([01]\d|2[0-3]):[0-5]\d$/).withMessage('Use the format HH:MM')
+const score = (field: string) => body(field).optional({ nullable: true }).isInt({ min: 0, max: 999 })
 
 router.get('/', getTeams)
 router.get('/mine', authenticate, requireRole(ROLES.CLUB_LEADER), getMyTeam)
@@ -25,7 +26,8 @@ router.post('/:id/fixtures', ...own,
     body('venue').trim().isLength({ min: 1, max: 150 }),
     body('scheduledAt').isISO8601(),
     body('isHome').optional().isBoolean(),
-    body('notes').optional({ nullable: true }).isString().isLength({ max: 500 })
+    body('notes').optional({ nullable: true }).isString().isLength({ max: 500 }),
+    score('ourScore'), score('theirScore')
   ],
   validate, createFixture)
 
@@ -34,9 +36,9 @@ router.put('/:id/fixtures/:fixtureId', ...own,
     body('opposition').optional().trim().isLength({ min: 1, max: 100 }),
     body('venue').optional().trim().isLength({ min: 1, max: 150 }),
     body('scheduledAt').optional().isISO8601(),
+    body('isHome').optional().isBoolean(),
     body('status').optional().isIn(['UPCOMING', 'COMPLETED']),
-    body('ourScore').optional().isInt({ min: 0, max: 999 }),
-    body('theirScore').optional().isInt({ min: 0, max: 999 }),
+    score('ourScore'), score('theirScore'),
     body('notes').optional({ nullable: true }).isString().isLength({ max: 500 })
   ],
   validate, updateFixture)
