@@ -6,6 +6,7 @@ import cookieParser from 'cookie-parser'
 import dotenv from 'dotenv'
 import { errorHandler, notFound } from './middleware/errorHandler'
 import { generalLimiter, identifyForLimits, userLimiter } from './middleware/rateLimiter'
+import { UPLOAD_ROOT } from './utils/storage'
 import authRoutes from './routes/auth'
 import userRoutes from './routes/users'
 import clubRoutes from './routes/clubs'
@@ -16,8 +17,9 @@ import adminRoutes from './routes/admin'
 import notificationRoutes from './routes/notifications'
 import messageRoutes from './routes/messages'
 import adminReportRoutes from './routes/adminReports'
-import appealRoutes from './routes/appeals'
 import adminAppealRoutes from './routes/adminAppeals'
+import groupImageRoutes from './routes/groupImages'
+import appealRoutes from './routes/appeals'
 import commentRoutes from './routes/comments'
 import countsRoutes from './routes/counts'
 
@@ -33,6 +35,12 @@ if (proxyHops > 0) app.set('trust proxy', proxyHops)
 
 // Security headers
 app.use(helmet())
+
+// Uploaded logos and banners are shown on the frontend's own origin, so allow cross-site image loading
+app.use('/uploads', (_req, res, next) => {
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin')
+  next()
+}, express.static(UPLOAD_ROOT, { maxAge: '7d', index: false, dotfiles: 'deny' }))
 
 // Only our own frontend may call this API from a browser
 app.use(cors({
@@ -72,21 +80,22 @@ app.get('/health', (req, res) => {
   })
 })
 
-// All route groups. Each line makes one group of URLs available.
+// All route groups. Specific /api/admin/... paths go before the general /api/admin.
 app.use('/api/auth', authRoutes)
+app.use('/api/appeals', appealRoutes)
 app.use('/api/users', userRoutes)
 app.use('/api/clubs', clubRoutes)
 app.use('/api/sports', sportRoutes)
 app.use('/api/events', eventRoutes)
 app.use('/api/articles', articleRoutes)
-app.use('/api/appeals', appealRoutes)
-app.use('/api/admin/appeals', adminAppealRoutes)
-app.use('/api', commentRoutes)
-app.use('/api/admin', adminRoutes)
 app.use('/api/notifications', notificationRoutes)
 app.use('/api/messages', messageRoutes)
-app.use('/api/admin/reports', adminReportRoutes)
 app.use('/api/counts', countsRoutes)
+app.use('/api/groups', groupImageRoutes)
+app.use('/api/admin/reports', adminReportRoutes)
+app.use('/api/admin/appeals', adminAppealRoutes)
+app.use('/api/admin', adminRoutes)
+app.use('/api', commentRoutes)
 
 // These two MUST stay last. Anything registered after them is never reached.
 app.use(notFound)
