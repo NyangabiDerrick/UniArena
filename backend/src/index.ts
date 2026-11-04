@@ -6,6 +6,7 @@ import cookieParser from 'cookie-parser'
 import dotenv from 'dotenv'
 import { errorHandler, notFound } from './middleware/errorHandler'
 import { generalLimiter, identifyForLimits, userLimiter } from './middleware/rateLimiter'
+import { verifiedOnly } from './middleware/verified'
 import { UPLOAD_ROOT } from './utils/storage'
 import authRoutes from './routes/auth'
 import userRoutes from './routes/users'
@@ -79,6 +80,11 @@ app.get('/health', (req, res) => {
     environment: process.env.NODE_ENV
   })
 })
+
+// Students must confirm their email before these three actions
+app.post('/api/messages', ...verifiedOnly)
+app.post('/api/events/:id/tickets', ...verifiedOnly)
+app.post('/api/clubs/:id/join', ...verifiedOnly)
 
 // All route groups. Specific /api/admin/... paths go before the general /api/admin.
 app.use('/api/auth', authRoutes)
