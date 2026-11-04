@@ -25,6 +25,8 @@ model User {
   passwordHash     String?
   resetToken       String?
   resetTokenExpiry DateTime?
+  verifyToken       String?
+  verifyTokenExpiry DateTime?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   blocksMade      UserBlock[]     @relation("Blocker")
@@ -363,7 +365,7 @@ enum ArticleStatus {
   PUBLISHED
   REJECTED
   ARCHIVED
-  HIDDEN 
+  HIDDEN
   REMOVED
 }
 
