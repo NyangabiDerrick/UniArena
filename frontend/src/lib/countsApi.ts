@@ -5,6 +5,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
 export interface Counts {
   notifications: number
   messages: number
+  emailVerified: boolean
 }
 
 export async function getCounts(): Promise<Counts> {

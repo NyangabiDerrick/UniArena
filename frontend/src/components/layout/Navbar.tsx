@@ -3,9 +3,10 @@
 import { useState, useEffect, useCallback } from "react"
 import { signOut, useSession } from "next-auth/react"
 import { usePathname, useRouter } from "next/navigation"
-import { ArrowLeft, Bell, LogOut, User, MessageSquare } from "lucide-react"
+import { ArrowLeft, Bell, LogOut, User, MessageSquare, MailWarning } from "lucide-react"
 import Link from "next/link"
 import { getCounts } from "@/lib/countsApi"
+import { resendVerification } from "@/lib/verifyApi"
 import { usePolling } from "@/lib/usePolling"
 
 const badge: React.CSSProperties = {
@@ -20,12 +21,16 @@ export default function Navbar() {
   const router = useRouter()
   const [unread, setUnread] = useState(0)
   const [unreadMessages, setUnreadMessages] = useState(0)
+  const [verified, setVerified] = useState(true)
+  const [mailNote, setMailNote] = useState("")
+  const [sending, setSending] = useState(false)
 
   const refresh = useCallback(() => {
     getCounts()
       .then(c => {
         setUnread(c.notifications)
         setUnreadMessages(c.messages)
+        setVerified(c.emailVerified)
       })
       .catch(() => {})
   }, [])
@@ -39,6 +44,18 @@ export default function Navbar() {
   const goBack = () => {
     if (window.history.length > 1) router.back()
     else router.push("/dashboard")
+  }
+
+  const resend = async () => {
+    setSending(true)
+    setMailNote("")
+    try {
+      setMailNote(await resendVerification())
+    } catch (e) {
+      setMailNote(e instanceof Error ? e.message : "Could not send the email")
+    } finally {
+      setSending(false)
+    }
   }
 
   const iconLink: React.CSSProperties = {
@@ -80,6 +97,25 @@ export default function Navbar() {
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+        {!verified && (
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginRight: 8 }}>
+            {mailNote && <span style={{ fontSize: 12, color: "#6B6962", maxWidth: 260 }}>{mailNote}</span>}
+            <button
+              onClick={resend}
+              disabled={sending}
+              title="Confirm your university email to message, RSVP and join clubs"
+              style={{
+                display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 8,
+                border: "1.5px solid #C9A84C", background: "#FFFBF0", color: "#92400E",
+                fontSize: 12, fontWeight: 600, cursor: sending ? "not-allowed" : "pointer", fontFamily: "'Inter', sans-serif"
+              }}
+            >
+              <MailWarning size={14} />
+              {sending ? "Sending..." : "Confirm your email"}
+            </button>
+          </div>
+        )}
+
         <Link href="/messages" style={iconLink} aria-label={unreadMessages > 0 ? `${unreadMessages} unread messages` : "Messages"}>
           <MessageSquare size={17} />
           {unreadMessages > 0 && <span style={badge}>{unreadMessages > 9 ? "9+" : unreadMessages}</span>}
