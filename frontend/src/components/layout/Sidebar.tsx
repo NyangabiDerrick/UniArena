@@ -7,7 +7,7 @@ import { useSession } from "next-auth/react"
 import {
   LayoutDashboard, Users, Trophy, Calendar, Ticket,
   Newspaper, MessageSquare, Shield, Settings, Flag, Scale,
-  CalendarPlus, CalendarCheck, FilePlus, FileText, Building2, ClipboardList, ImagePlus
+  CalendarPlus, CalendarCheck, FilePlus, FileText, Building2, ClipboardList, ImagePlus, BarChart3
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { api } from "@/lib/api"
@@ -37,6 +37,7 @@ const navItems: NavItem[] = [
   { label: "Messages", href: "/messages", icon: MessageSquare, roles: ["STUDENT","CLUB_LEADER","SPORTS_CAPTAIN","LECTURER","MODERATOR","ADMIN"] },
   { label: "Admin", href: "/admin", icon: Shield, roles: ["ADMIN","MODERATOR"] },
   { label: "Groups", href: "/admin/groups", icon: Building2, roles: ["ADMIN"] },
+  { label: "Group Insights", href: "/admin/insights", icon: BarChart3, roles: ["ADMIN"] },
   { label: "Reports", href: "/admin/reports", icon: Flag, roles: ["ADMIN","MODERATOR"] },
   { label: "Appeals", href: "/admin/appeals", icon: Scale, roles: ["ADMIN"] },
 ]
