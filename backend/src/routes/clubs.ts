@@ -4,6 +4,7 @@ import {
   getClubs, getClubById, getMyClub, getMembershipStatus, createClub,
   joinClub, getClubMembers, updateMembership
 } from '../controllers/clubs/clubsController'
+import { leaveGroup, getGroupInsights } from '../controllers/auth/userController'
 import { authenticate, requireRole, requireGroupManager, ROLES } from '../middleware/auth'
 import { validate } from '../middleware/validate'
 
@@ -13,6 +14,7 @@ router.get('/', getClubs)
 router.get('/mine', authenticate, requireRole(ROLES.CLUB_LEADER), getMyClub)
 router.get('/:id', getClubById)
 router.get('/:id/membership', authenticate, getMembershipStatus)
+router.get('/:id/insights', authenticate, requireGroupManager('club'), getGroupInsights)
 router.post('/',
   authenticate,
   requireRole(ROLES.STUDENT, ROLES.ADMIN),
@@ -25,6 +27,7 @@ router.post('/',
   createClub
 )
 router.post('/:id/join', authenticate, requireRole(ROLES.STUDENT), joinClub)
+router.post('/:id/leave', authenticate, requireRole(ROLES.STUDENT), leaveGroup)
 router.get('/:id/members', authenticate, requireGroupManager('club'), getClubMembers)
 router.put('/:id/members/:userId',
   authenticate,
