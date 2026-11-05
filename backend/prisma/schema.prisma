@@ -14,6 +14,7 @@ model User {
   name        String
   faculty     String?
   yearOfStudy Int?
+  bio              String?
   role        Role     @default(STUDENT)
   avatarUrl   String?
   isActive    Boolean  @default(true)
@@ -481,4 +482,24 @@ model TrainingSession {
   team SportsTeam @relation(fields: [teamId], references: [id], onDelete: Cascade)
 
   @@index([teamId])
+}
+
+model MembershipExit {
+  id        String   @id @default(cuid())
+  userId    String
+  clubId    String
+  reason    ExitReason
+  createdAt DateTime @default(now())
+
+  @@index([clubId])
+}
+
+enum ExitReason {
+  SCHEDULE_CLASH
+  NO_LONGER_INTERESTED
+  MOVING_ON
+  COST
+  NOT_WELCOMING
+  OTHER
+  PREFER_NOT_TO_SAY
 }
