@@ -7,6 +7,9 @@ import Link from "next/link"
 import { api } from "@/lib/api"
 import type { Article } from "@/lib/types"
 import { articleCategory, categoryLabel } from "@/lib/format"
+import { useMyGroups } from "@/lib/myGroups"
+
+type ArticleWithOwner = Article & { clubId?: string | null; teamId?: string | null }
 
 const filters = [
   { label: "All", value: "ALL" },
@@ -29,29 +32,37 @@ const sourceOf = (a: Article) => {
 }
 
 export default function NewsPage() {
-  const [articles, setArticles] = useState<Article[]>([])
+  const groups = useMyGroups()
+  const [articles, setArticles] = useState<ArticleWithOwner[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
   const [selected, setSelected] = useState("ALL")
+  const [mineOnly, setMineOnly] = useState(false)
 
   useEffect(() => {
     let cancelled = false
     const timer = setTimeout(() => {
       api.getArticles({ search })
-        .then(res => { if (!cancelled) setArticles(res.data) })
+        .then(res => { if (!cancelled) setArticles(res.data as ArticleWithOwner[]) })
         .catch(err => console.error("Failed to fetch articles:", err))
         .finally(() => { if (!cancelled) setLoading(false) })
     }, 250)
     return () => { cancelled = true; clearTimeout(timer) }
   }, [search])
 
-  const filtered = articles.filter(a => selected === "ALL" || articleCategory(a) === selected)
+  const inMyGroups = (a: ArticleWithOwner) =>
+    (!!a.clubId && groups.clubIds.has(a.clubId)) || (!!a.teamId && groups.teamIds.has(a.teamId))
+
+  const filtered = articles
+    .filter(a => !mineOnly || inMyGroups(a))
+    .filter(a => selected === "ALL" || articleCategory(a) === selected)
   const pinned = filtered.filter(a => a.isPinned)
   const regular = filtered.filter(a => !a.isPinned)
 
-  const renderCard = (a: Article, highlighted = false) => {
+  const renderCard = (a: ArticleWithOwner, highlighted = false) => {
     const key = articleCategory(a)
     const c = catColors[key] || { bg: "#F1F5F9", text: "#475569" }
+    const mine = inMyGroups(a)
 
     return (
       <Link key={a.id} href={`/news/${a.id}`} style={{ textDecoration: "none" }}>
@@ -63,11 +74,12 @@ export default function NewsPage() {
           onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.boxShadow = "0 6px 20px rgba(11,29,58,0.08)"; el.style.transform = "translateY(-1px)" }}
           onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.boxShadow = "none"; el.style.transform = "translateY(0)" }}
         >
-          <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+          <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
             <span style={{ fontSize: 11, padding: "3px 10px", borderRadius: 99, fontWeight: 500, background: c.bg, color: c.text }}>
               {categoryLabel(key)}
             </span>
-            <span style={{ fontSize: 11, color: "#9CA3AF" }}>{sourceOf(a)}</span>
+            {mine && <span style={{ fontSize: 11, padding: "3px 10px", borderRadius: 99, fontWeight: 500, background: "#FFFBEB", color: "#92400E" }}>Your group</span>}
+            <span style={{ fontSize: 11, color: "#9CA3AF", alignSelf: "center" }}>{sourceOf(a)}</span>
           </div>
 
           <h3 style={{ fontSize: 15, fontWeight: 600, color: "#0B1D3A", marginBottom: 8 }}>{a.title}</h3>
@@ -98,10 +110,20 @@ export default function NewsPage() {
           <p style={{ fontSize: 14, color: "#6B6962" }}>Stay up to date with everything happening at UniArena</p>
         </div>
 
-        <div style={{ position: "relative", marginBottom: 16 }}>
-          <Search size={15} style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: "#9CA3AF" }} />
-          <input type="text" placeholder="Search news and announcements..." value={search} onChange={e => setSearch(e.target.value)}
-            style={{ width: "100%", padding: "11px 14px 11px 40px", fontSize: 13, borderRadius: 10, border: "1.5px solid #E4E2DC", background: "white", color: "#1A1916", outline: "none", fontFamily: "'Inter', sans-serif" }} />
+        <div style={{ display: "flex", gap: 12, marginBottom: 16, flexWrap: "wrap" }}>
+          <div style={{ position: "relative", flex: 1, minWidth: 200 }}>
+            <Search size={15} style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: "#9CA3AF" }} />
+            <input type="text" placeholder="Search news and announcements..." value={search} onChange={e => setSearch(e.target.value)}
+              style={{ width: "100%", padding: "11px 14px 11px 40px", fontSize: 13, borderRadius: 10, border: "1.5px solid #E4E2DC", background: "white", color: "#1A1916", outline: "none", fontFamily: "'Inter', sans-serif" }} />
+          </div>
+          <label style={{
+            display: "flex", alignItems: "center", gap: 8, padding: "0 16px", background: mineOnly ? "#0B1D3A" : "white",
+            border: "1.5px solid #E4E2DC", borderRadius: 10, fontSize: 13, cursor: "pointer",
+            color: mineOnly ? "white" : "#6B6962", whiteSpace: "nowrap"
+          }}>
+            <input type="checkbox" checked={mineOnly} onChange={e => setMineOnly(e.target.checked)} />
+            My groups only
+          </label>
         </div>
 
         <div style={{ display: "flex", gap: 8, marginBottom: 28 }}>
@@ -121,7 +143,13 @@ export default function NewsPage() {
         ) : filtered.length === 0 ? (
           <div style={{ textAlign: "center", padding: "60px 0" }}>
             <p style={{ fontSize: 32, marginBottom: 12 }}>📰</p>
-            <p style={{ fontSize: 14, color: "#6B6962" }}>No articles found</p>
+            <p style={{ fontSize: 14, color: "#6B6962" }}>
+              {mineOnly && groups.ready && groups.clubIds.size + groups.teamIds.size === 0
+                ? "You aren't in any clubs or teams yet, so there's no group news to show."
+                : mineOnly
+                  ? "No news from your groups yet."
+                  : "No articles found"}
+            </p>
           </div>
         ) : (
           <>
