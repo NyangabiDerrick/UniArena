@@ -3,6 +3,26 @@ import type { Analytics, Article, AuditLog, Club, Dashboard, Event, Fixture, Mem
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
 
+export interface LeaveReason {
+  value: string
+  label: string
+}
+
+export interface GroupInsights {
+  windowDays: number
+  activeMembers: number
+  joinedInWindow: number
+  leftInWindow: number
+  monthly: Record<string, { joined: number }>
+  reasons: { reason: string; count: number }[]
+}
+
+export interface ProfileUpdate {
+  faculty?: string | null
+  yearOfStudy?: number | null
+  bio?: string | null
+}
+
 async function request<T>(
   endpoint: string,
   options: RequestInit = {}
@@ -49,6 +69,9 @@ export const api = {
   getDashboard: () => request<Dashboard>("/api/users/dashboard"),
   createClub: (data: Partial<Club>) => request<Club>("/api/clubs", { method: "POST", body: JSON.stringify(data) }),
   joinClub: (id: string) => request<Membership>(`/api/clubs/${id}/join`, { method: "POST" }),
+  leaveGroup: (id: string, reason?: string) =>
+    request<null>(`/api/clubs/${id}/leave`, { method: "POST", body: JSON.stringify({ reason }) }),
+  getGroupInsights: (id: string) => request<GroupInsights>(`/api/clubs/${id}/insights`),
   getClubMembers: (id: string) => request<MemberWithUser[]>(`/api/clubs/${id}/members`),
   updateMembership: (clubId: string, userId: string, status: string) =>
     request<Membership>(`/api/clubs/${clubId}/members/${userId}`, { method: "PUT", body: JSON.stringify({ status }) }),
@@ -74,6 +97,7 @@ export const api = {
   purchaseTicket: (eventId: string) =>
     request<unknown>(`/api/events/${eventId}/tickets`, { method: "POST" }),
   getMyTickets: () => request<Ticket[]>("/api/events/tickets/mine"),
+
   // Articles
   getArticles: (params?: { search?: string; category?: string }) => {
     const query = new URLSearchParams(cleanParams(params)).toString()
@@ -102,5 +126,8 @@ export const api = {
   getAuditLogs: () => request<AuditLog[]>("/api/admin/audit-logs"),
 
   // Users
-  getProfile: () => request<Profile>("/api/users/profile"),
+  getProfile: () => request<Profile & { bio?: string | null }>("/api/users/profile"),
+  updateProfile: (data: ProfileUpdate) =>
+    request<Profile & { bio?: string | null }>("/api/users/profile", { method: "PUT", body: JSON.stringify(data) }),
+  getLeaveReasons: () => request<LeaveReason[]>("/api/users/leave-reasons"),
 }
