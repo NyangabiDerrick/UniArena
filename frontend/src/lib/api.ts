@@ -23,6 +23,21 @@ export interface ProfileUpdate {
   bio?: string | null
 }
 
+export interface DiscussionPost {
+  id: string
+  title: string
+  content: string
+  isPinned: boolean
+  createdAt: string
+  userId: string
+  user: { name: string }
+}
+
+export interface DiscussionList {
+  canModerate: boolean
+  posts: DiscussionPost[]
+}
+
 async function request<T>(
   endpoint: string,
   options: RequestInit = {}
@@ -75,6 +90,15 @@ export const api = {
   getClubMembers: (id: string) => request<MemberWithUser[]>(`/api/clubs/${id}/members`),
   updateMembership: (clubId: string, userId: string, status: string) =>
     request<Membership>(`/api/clubs/${clubId}/members/${userId}`, { method: "PUT", body: JSON.stringify({ status }) }),
+
+  // Discussions
+  getDiscussions: (clubId: string) => request<DiscussionList>(`/api/clubs/${clubId}/discussions`),
+  createDiscussion: (clubId: string, data: { title: string; content: string }) =>
+    request<DiscussionPost>(`/api/clubs/${clubId}/discussions`, { method: "POST", body: JSON.stringify(data) }),
+  togglePinDiscussion: (clubId: string, postId: string) =>
+    request<null>(`/api/clubs/${clubId}/discussions/${postId}/pin`, { method: "PUT" }),
+  deleteDiscussion: (clubId: string, postId: string) =>
+    request<null>(`/api/clubs/${clubId}/discussions/${postId}`, { method: "DELETE" }),
 
   // Sports
   getTeams: (params?: { sport?: string; search?: string }) => {

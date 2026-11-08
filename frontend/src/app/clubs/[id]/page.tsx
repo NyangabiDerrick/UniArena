@@ -3,14 +3,14 @@
 import { useState, useEffect, use } from "react"
 import MainLayout from "@/components/layout/MainLayout"
 import { useSession } from "next-auth/react"
-import { Users, Calendar, FileText, ArrowLeft, CheckCircle, MapPin } from "lucide-react"
+import { Users, Calendar, FileText, ArrowLeft, CheckCircle, MapPin, MessagesSquare } from "lucide-react"
 import Link from "next/link"
 import { api } from "@/lib/api"
 import { imageSrc } from "@/lib/groupImagesApi"
 import { errorMessage } from "@/lib/types"
 import type { Club, Committee, Event, Membership } from "@/lib/types"
 
-const tabs = ["About", "Events", "News", "Members", "Committee"]
+const tabs = ["About", "Events", "News", "Members", "Committee", "Discussions"]
 
 const emptyState = (icon: React.ReactNode, text: string) => (
   <div style={{ textAlign: "center", padding: "40px 0" }}>
@@ -73,6 +73,7 @@ export default function ClubProfilePage({ params }: { params: Promise<{ id: stri
 
   const banner = imageSrc(club.bannerUrl)
   const logo = imageSrc(club.logoUrl)
+  const isMember = membership === "ACTIVE"
 
   const joinButton = () => {
     if (session?.user?.role !== "STUDENT" || membership === undefined) return null
@@ -225,6 +226,22 @@ export default function ClubProfilePage({ params }: { params: Promise<{ id: stri
                   ))}
                 </div>
               ) : <p style={{ fontSize: 14, color: "#6B6962" }}>No committee assigned yet.</p>}
+            </div>
+          )}
+
+          {activeTab === "Discussions" && (
+            <div>
+              <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, color: "#0B1D3A", marginBottom: 12 }}>Discussions</h2>
+              {isMember ? (
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 14 }}>
+                  <p style={{ fontSize: 14, color: "#6B6962", lineHeight: 1.6 }}>Talk with other members of {club.name}, read pinned updates, and ask questions.</p>
+                  <Link href={`/clubs/${id}/discuss`} style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "10px 18px", borderRadius: 10, background: "#0B1D3A", color: "white", fontSize: 13, fontWeight: 600, textDecoration: "none" }}>
+                    <MessagesSquare size={15} /> Open discussions
+                  </Link>
+                </div>
+              ) : (
+                <p style={{ fontSize: 14, color: "#6B6962" }}>Discussions are for members only. Join the {club.type === "SOCIETY" ? "society" : "club"} to take part.</p>
+              )}
             </div>
           )}
 
