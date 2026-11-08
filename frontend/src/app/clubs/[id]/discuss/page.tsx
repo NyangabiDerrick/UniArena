@@ -5,18 +5,8 @@ import { useSession } from "next-auth/react"
 import Link from "next/link"
 import MainLayout from "@/components/layout/MainLayout"
 import { ArrowLeft, Pin, Trash2 } from "lucide-react"
-import { api } from "@/lib/api"
+import { api, type DiscussionPost } from "@/lib/api"
 import { errorMessage } from "@/lib/types"
-
-interface Post {
-  id: string
-  title: string
-  content: string
-  isPinned: boolean
-  createdAt: string
-  userId: string
-  user: { name: string }
-}
 
 const card: React.CSSProperties = { background: "white", borderRadius: 14, border: "1px solid #E4E2DC", padding: 22 }
 const input: React.CSSProperties = { width: "100%", padding: "10px 12px", fontSize: 14, borderRadius: 10, border: "1.5px solid #E4E2DC", outline: "none", fontFamily: "'Inter', sans-serif", background: "white" }
@@ -25,8 +15,8 @@ const when = (d: string) => new Date(d).toLocaleString("en-GB", { day: "numeric"
 
 export default function ClubDiscussionPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
-  const { data: session, status } = useSession()
-  const [posts, setPosts] = useState<Post[]>([])
+  const { status } = useSession()
+  const [posts, setPosts] = useState<DiscussionPost[]>([])
   const [canModerate, setCanModerate] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
@@ -69,7 +59,7 @@ export default function ClubDiscussionPage({ params }: { params: Promise<{ id: s
     }
   }
 
-  const pin = async (p: Post) => {
+  const pin = async (p: DiscussionPost) => {
     try {
       await api.togglePinDiscussion(id, p.id)
       setReloadKey(k => k + 1)
@@ -78,7 +68,7 @@ export default function ClubDiscussionPage({ params }: { params: Promise<{ id: s
     }
   }
 
-  const remove = async (p: Post) => {
+  const remove = async (p: DiscussionPost) => {
     if (!window.confirm(`Delete "${p.title}"?`)) return
     try {
       await api.deleteDiscussion(id, p.id)
@@ -88,8 +78,6 @@ export default function ClubDiscussionPage({ params }: { params: Promise<{ id: s
       setError(errorMessage(err))
     }
   }
-
-  const me = session?.user?.id
 
   return (
     <MainLayout>
@@ -127,18 +115,16 @@ export default function ClubDiscussionPage({ params }: { params: Promise<{ id: s
                   </p>
                   <p style={{ fontSize: 11, color: "#9CA3AF", marginTop: 2 }}>{p.user.name} · {when(p.createdAt)}</p>
                 </div>
-                <div style={{ display: "flex", gap: 12, flexShrink: 0 }}>
-                  {canModerate && (
+                {canModerate && (
+                  <div style={{ display: "flex", gap: 12, flexShrink: 0 }}>
                     <button onClick={() => pin(p)} title={p.isPinned ? "Unpin" : "Pin"} style={{ background: "none", border: "none", cursor: "pointer", color: "#6B6962" }}>
                       <Pin size={15} />
                     </button>
-                  )}
-                  {(canModerate || p.userId === me) && (
                     <button onClick={() => remove(p)} title="Delete" style={{ background: "none", border: "none", cursor: "pointer", color: "#DC2626" }}>
                       <Trash2 size={15} />
                     </button>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
               <p style={{ fontSize: 14, color: "#374151", lineHeight: 1.6, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{p.content}</p>
             </div>
