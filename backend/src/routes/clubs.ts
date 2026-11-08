@@ -5,7 +5,11 @@ import {
   joinClub, getClubMembers, updateMembership
 } from '../controllers/clubs/clubsController'
 import { leaveGroup, getGroupInsights } from '../controllers/auth/userController'
+import {
+  listDiscussions, createPost, togglePin, deletePost
+} from '../controllers/clubs/discussionsController'
 import { authenticate, requireRole, requireGroupManager, ROLES } from '../middleware/auth'
+import { verifiedOnly } from '../middleware/verified'
 import { validate } from '../middleware/validate'
 
 const router = Router()
@@ -36,5 +40,19 @@ router.put('/:id/members/:userId',
   validate,
   updateMembership
 )
+
+// Discussions: members, the club's leader and admins read; members post (verified students only)
+router.get('/:id/discussions', authenticate, listDiscussions)
+router.post('/:id/discussions',
+  ...verifiedOnly,
+  [
+    body('title').trim().isLength({ min: 2, max: 120 }),
+    body('content').trim().isLength({ min: 1, max: 2000 })
+  ],
+  validate,
+  createPost
+)
+router.put('/:id/discussions/:postId/pin', authenticate, togglePin)
+router.delete('/:id/discussions/:postId', authenticate, deletePost)
 
 export default router
