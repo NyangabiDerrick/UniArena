@@ -1,9 +1,10 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import Link from "next/link"
 import { useSession } from "next-auth/react"
 import MainLayout from "@/components/layout/MainLayout"
-import { Users, Calendar, CheckCircle, XCircle } from "lucide-react"
+import { Users, Calendar, CheckCircle, XCircle, Pencil } from "lucide-react"
 import { api, type GroupInsights } from "@/lib/api"
 import { errorMessage } from "@/lib/types"
 import type { Club, MemberWithUser } from "@/lib/types"
@@ -35,7 +36,6 @@ export default function ManageClubPage() {
   const [tab, setTab] = useState("overview")
   const [insights, setInsights] = useState<GroupInsights | null>(null)
   const [insightsError, setInsightsError] = useState("")
-
   const [reloadKey, setReloadKey] = useState(0)
 
   useEffect(() => {
@@ -123,13 +123,18 @@ export default function ManageClubPage() {
   return (
     <MainLayout>
       <div style={{ maxWidth: 1080, margin: "0 auto" }}>
-        <div style={{ marginBottom: 28 }}>
-          <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: 28, fontWeight: 700, color: "#0B1D3A", marginBottom: 4 }}>
-            {club.name}
-          </h1>
-          <p style={{ fontSize: 14, color: "#6B6962" }}>
-            {club.type === "SOCIETY" ? "Society" : "Club"} management
-          </p>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 16, flexWrap: "wrap", marginBottom: 28 }}>
+          <div>
+            <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: 28, fontWeight: 700, color: "#0B1D3A", marginBottom: 4 }}>
+              {club.name}
+            </h1>
+            <p style={{ fontSize: 14, color: "#6B6962" }}>
+              {club.type === "SOCIETY" ? "Society" : "Club"} management
+            </p>
+          </div>
+          <Link href="/clubs/manage/edit" style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "10px 16px", borderRadius: 10, border: "1.5px solid #E4E2DC", background: "white", color: "#0B1D3A", fontSize: 13, fontWeight: 500, textDecoration: "none" }}>
+            <Pencil size={14} /> Edit club
+          </Link>
         </div>
 
         {notice && <div style={{ padding: "10px 14px", borderRadius: 8, marginBottom: 16, background: "#F0FDF4", color: "#166534", border: "1px solid #BBF7D0", fontSize: 13 }}>{notice}</div>}

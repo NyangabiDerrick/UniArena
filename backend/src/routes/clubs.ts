@@ -2,7 +2,7 @@ import { Router } from 'express'
 import { body } from 'express-validator'
 import {
   getClubs, getClubById, getMyClub, getMembershipStatus, createClub,
-  joinClub, getClubMembers, updateMembership
+  joinClub, getClubMembers, updateMembership, updateMyClub, CLUB_CATEGORIES
 } from '../controllers/clubs/clubsController'
 import { leaveGroup, getGroupInsights } from '../controllers/auth/userController'
 import {
@@ -16,6 +16,18 @@ const router = Router()
 
 router.get('/', getClubs)
 router.get('/mine', authenticate, requireRole(ROLES.CLUB_LEADER), getMyClub)
+router.put('/mine',
+  authenticate,
+  requireRole(ROLES.CLUB_LEADER),
+  [
+    body('name').trim().isLength({ min: 2, max: 100 }).withMessage('The name must be 2 to 100 characters'),
+    body('description').optional({ nullable: true }).isString().isLength({ max: 1000 }),
+    body('category').isIn(CLUB_CATEGORIES).withMessage('Choose a valid category'),
+    body('type').isIn(['CLUB', 'SOCIETY'])
+  ],
+  validate,
+  updateMyClub
+)
 router.get('/:id', getClubById)
 router.get('/:id/membership', authenticate, getMembershipStatus)
 router.get('/:id/insights', authenticate, requireGroupManager('club'), getGroupInsights)
@@ -41,7 +53,7 @@ router.put('/:id/members/:userId',
   updateMembership
 )
 
-// Discussions: members, the club's leader and admins read; members post (verified students only)
+// Discussions: members, the club's leader and admins read; verified members post
 router.get('/:id/discussions', authenticate, listDiscussions)
 router.post('/:id/discussions',
   ...verifiedOnly,
