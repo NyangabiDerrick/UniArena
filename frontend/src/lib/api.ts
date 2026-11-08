@@ -23,6 +23,13 @@ export interface ProfileUpdate {
   bio?: string | null
 }
 
+export interface MyClubUpdate {
+  name: string
+  description: string
+  category: string
+  type: "CLUB" | "SOCIETY"
+}
+
 export interface DiscussionPost {
   id: string
   title: string
@@ -80,6 +87,8 @@ export const api = {
   },
   getClub: (id: string) => request<Club>(`/api/clubs/${id}`),
   getMyClub: () => request<Club>("/api/clubs/mine"),
+  updateMyClub: (data: MyClubUpdate) =>
+    request<Club>("/api/clubs/mine", { method: "PUT", body: JSON.stringify(data) }),
   getMembershipStatus: (id: string) => request<{ status: string | null }>(`/api/clubs/${id}/membership`),
   getDashboard: () => request<Dashboard>("/api/users/dashboard"),
   createClub: (data: Partial<Club>) => request<Club>("/api/clubs", { method: "POST", body: JSON.stringify(data) }),
