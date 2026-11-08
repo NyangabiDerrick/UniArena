@@ -1,96 +1,92 @@
 "use client"
 
-import { Clock } from "lucide-react"
+import { useState, useEffect } from "react"
+import { useSession } from "next-auth/react"
+import { ScrollText } from "lucide-react"
+import { api } from "@/lib/api"
+import { errorMessage } from "@/lib/types"
+import type { AuditLog } from "@/lib/types"
 
-const mockLogs = [
-  {
-    id: "1",
-    action: "Approved club request",
-    target: "Photography Society",
-    admin: "Sarah Admin",
-    time: "May 30, 2026 — 14:32"
-  },
-  {
-    id: "2",
-    action: "Suspended user account",
-    target: "user@university.ac",
-    admin: "Sarah Admin",
-    time: "May 30, 2026 — 11:15"
-  },
-  {
-    id: "3",
-    action: "Rejected event",
-    target: "Off-campus Party",
-    admin: "Sarah Admin",
-    time: "May 29, 2026 — 16:45"
-  },
-  {
-    id: "4",
-    action: "Changed user role",
-    target: "Jane Leader — STUDENT to CLUB_LEADER",
-    admin: "Sarah Admin",
-    time: "May 29, 2026 — 09:20"
-  },
-  {
-    id: "5",
-    action: "Approved article",
-    target: "Welcome to UniArena",
-    admin: "Sarah Admin",
-    time: "May 28, 2026 — 13:10"
+const card: React.CSSProperties = { background: "white", borderRadius: 14, border: "1px solid #E4E2DC", overflow: "hidden" }
+
+const when = (d: string) =>
+  new Date(d).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })
+
+export default function AuditLogsPage() {
+  const { data: session, status } = useSession()
+  const [logs, setLogs] = useState<AuditLog[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
+
+  const role = session?.user?.role
+  const permitted = role === "ADMIN" || role === "MODERATOR"
+
+  useEffect(() => {
+    if (status !== "authenticated" || !permitted) return
+    let cancelled = false
+    api.getAuditLogs()
+      .then(res => { if (!cancelled) setLogs(res.data) })
+      .catch(err => { if (!cancelled) setError(errorMessage(err)) })
+      .finally(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
+  }, [status, permitted])
+
+  if (status === "authenticated" && !permitted) {
+    return <p style={{ textAlign: "center", padding: "80px 0", fontSize: 14, color: "#6B6962" }}>Only administrators can view the audit log.</p>
   }
-]
 
-export default function AuditPage() {
+  const th: React.CSSProperties = { padding: "12px 18px", textAlign: "left", fontSize: 12, fontWeight: 600, color: "#6B6962", background: "#F9FAFB", borderBottom: "1px solid #E4E2DC", whiteSpace: "nowrap" }
+  const td: React.CSSProperties = { padding: "14px 18px", fontSize: 13, color: "#374151", borderBottom: "1px solid #F3F4F6", verticalAlign: "top" }
+
   return (
-    <div className="max-w-6xl mx-auto">
-
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Audit Logs</h1>
-        <p className="text-gray-500 mt-1">
-          Full record of all admin actions on the platform
-        </p>
+    <div style={{ width: "100%" }}>
+      <div style={{ marginBottom: 24 }}>
+        <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: 28, fontWeight: 700, color: "#0B1D3A", marginBottom: 4 }}>Audit log</h1>
+        <p style={{ fontSize: 14, color: "#6B6962" }}>A permanent record of admin and leader actions. Entries cannot be edited or deleted.</p>
       </div>
 
-      {/* Logs Table */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-50 border-b border-gray-100">
-            <tr>
-              <th className="text-left px-4 py-3 font-medium text-gray-600">Action</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-600">Target</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-600">Admin</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-600">Time</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-50">
-            {mockLogs.map((log) => (
-              <tr key={log.id} className="hover:bg-gray-50 transition">
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-gray-400" />
-                    <span className="font-medium text-gray-900">{log.action}</span>
-                  </div>
-                </td>
-                <td className="px-4 py-3 text-gray-600">{log.target}</td>
-                <td className="px-4 py-3 text-gray-600">{log.admin}</td>
-                <td className="px-4 py-3 text-gray-400 text-xs">{log.time}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      {error && <div style={{ padding: "10px 14px", borderRadius: 8, marginBottom: 16, background: "#FEF2F2", color: "#991B1B", border: "1px solid #FECACA", fontSize: 13 }}>{error}</div>}
 
-        {/* Footer */}
-        <div className="px-4 py-3 border-t border-gray-100 flex items-center justify-between">
-          <p className="text-xs text-gray-500">
-            Showing {mockLogs.length} most recent actions
-          </p>
-          <button className="text-xs px-3 py-1 border border-gray-200 rounded-lg hover:bg-gray-50">
-            Export CSV
-          </button>
-        </div>
+      <div style={card}>
+        {loading ? (
+          <p style={{ textAlign: "center", padding: "60px 0", fontSize: 14, color: "#9CA3AF" }}>Loading...</p>
+        ) : logs.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "60px 0" }}>
+            <ScrollText size={36} color="#E4E2DC" style={{ margin: "0 auto 12px" }} />
+            <p style={{ fontSize: 14, color: "#6B6962" }}>No actions recorded yet.</p>
+          </div>
+        ) : (
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 760 }}>
+              <thead>
+                <tr>
+                  <th style={th}>Action</th>
+                  <th style={th}>Details</th>
+                  <th style={th}>By</th>
+                  <th style={th}>Time</th>
+                </tr>
+              </thead>
+              <tbody>
+                {logs.map(l => (
+                  <tr key={l.id}>
+                    <td style={{ ...td, fontWeight: 600, color: "#0B1D3A" }}>{l.action}</td>
+                    <td style={td}>
+                      <span style={{ color: "#0B1D3A" }}>{l.details || "—"}</span>
+                      <span style={{ display: "block", fontSize: 11, color: "#9CA3AF", marginTop: 2 }}>{l.targetType}</span>
+                    </td>
+                    <td style={{ ...td, whiteSpace: "nowrap" }}>{l.admin?.name ?? "Unknown"}</td>
+                    <td style={{ ...td, whiteSpace: "nowrap", color: "#9CA3AF" }}>{when(l.createdAt)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
+      {!loading && logs.length > 0 && (
+        <p style={{ fontSize: 12, color: "#9CA3AF", marginTop: 12 }}>Showing the {logs.length} most recent actions.</p>
+      )}
     </div>
   )
 }
