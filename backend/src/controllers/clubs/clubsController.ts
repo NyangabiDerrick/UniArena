@@ -214,4 +214,33 @@ export const updateMyClub = async (req: AuthRequest, res: Response) => {
     if (!before) return sendError(res, 'Club not found', 404)
 
     const changes: string[] = []
-    if (before.name !==
+    if (before.name !== name) changes.push(`name: "${before.name}" to "${name}"`)
+    if (before.category !== category) changes.push(`category: ${before.category} to ${category}`)
+    if (before.type !== type) changes.push(`type: ${before.type} to ${type}`)
+    if ((before.description ?? '') !== description) changes.push('description updated')
+
+    const club = await prisma.$transaction(async tx => {
+      const updated = await tx.club.update({
+        where: { id: clubId },
+        data: { name, description: description || null, category, type }
+      })
+      await tx.auditLog.create({
+        data: {
+          adminId: req.user!.id,
+          action: 'Club details edited by leader',
+          targetType: 'Club',
+          targetId: clubId,
+          details: changes.join('; ') || 'No changes'
+        }
+      })
+      return updated
+    })
+
+    return sendSuccess(res, club, 'Club details saved')
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+      return sendError(res, 'A club with that name already exists', 409)
+    }
+    return sendError(res, 'Failed to save club details', 500, error)
+  }
+}
