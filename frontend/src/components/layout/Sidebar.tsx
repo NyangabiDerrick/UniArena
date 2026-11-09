@@ -94,7 +94,7 @@ export default function Sidebar() {
           }}>U</div>
           <div>
             <div style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: 16, color: "#FFFFFF", lineHeight: 1 }}>UniArena</div>
-            <div style={{ fontSize: 9, color: "#C9A84C", letterSpacing: "0.12em", marginTop: 3, opacity: 0.85 }}>UNIVERSITY PLATFORM</div>
+            <div style={{ fontSize: 9, color: "#C9A84C", letterSpacing: "0.12em", marginTop: 3, opacity: 0.85 }}>UNI EXPERIENCE REDEFINED</div>
           </div>
         </Link>
       </div>
@@ -143,4 +143,4 @@ export default function Sidebar() {
       </div>
     </aside>
   )
-}                           
+}
