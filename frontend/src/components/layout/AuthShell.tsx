@@ -50,17 +50,17 @@ export default function AuthShell({
           }}>U</div>
           <div>
             <div style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: 18, color: "white" }}>UniArena</div>
-            <div style={{ fontSize: 9, color: "#C9A84C", letterSpacing: "0.14em", marginTop: 1 }}>UNIVERSITY PLATFORM</div>
+            <div style={{ fontSize: 9, color: "#C9A84C", letterSpacing: "0.14em", marginTop: 1 }}>UNI EXPERIENCE REDEFINED</div>
           </div>
         </div>
 
         <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", gap: 24 }}>
+          {/* To change the headline, edit the two lines below */}
           <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: 40, fontWeight: 700, color: "white", lineHeight: 1.2 }}>
-            Your university,<br /><span style={{ color: "#C9A84C" }}>all in one place.</span>
+            Every club. Every game.<br /><span style={{ color: "#C9A84C" }}>Every event.</span>
           </h1>
           <p style={{ fontSize: 14, color: "rgba(255,255,255,0.5)", lineHeight: 1.7, maxWidth: 360 }}>
-            Clubs, societies, sports teams, events and more — unified under one
-            powerful platform built for modern university life.
+            Join clubs and societies, follow your teams, and never miss an event, all in one place at Mount Kenya University.
           </p>
         </div>
 
