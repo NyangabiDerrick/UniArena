@@ -4,6 +4,7 @@ import rateLimit from 'express-rate-limit'
 import {
   register, login, forgotPassword, resetPassword, verifyEmail, resendVerification
 } from '../controllers/auth/authController'
+import { policyStatus, acceptPolicy } from '../controllers/auth/policyController'
 import { validate } from '../middleware/validate'
 import { authenticate, AuthRequest } from '../middleware/auth'
 import { authLimiter, loginLimiter } from '../middleware/rateLimiter'
@@ -11,7 +12,6 @@ import { authLimiter, loginLimiter } from '../middleware/rateLimiter'
 const router = Router()
 const password = body('password').isLength({ min: 8, max: 100 }).withMessage('Password must be at least 8 characters')
 
-// 3 confirmation emails an hour per signed-in person
 const resendLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
   max: 3,
@@ -20,7 +20,13 @@ const resendLimiter = rateLimit({
 })
 
 router.post('/register', authLimiter,
-  [body('name').trim().notEmpty(), body('email').isEmail(), body('studentId').trim().notEmpty(), password],
+  [
+    body('name').trim().notEmpty(),
+    body('email').isEmail(),
+    body('studentId').trim().notEmpty(),
+    body('acceptedPolicy').equals('true').withMessage('You must accept the Terms and Data Policy'),
+    password
+  ],
   validate, register)
 
 router.post('/login', loginLimiter,
@@ -36,5 +42,8 @@ router.post('/reset-password', authLimiter,
 router.post('/verify-email', authLimiter, [body('token').isString().notEmpty()], validate, verifyEmail)
 
 router.post('/resend-verification', authenticate, resendLimiter, resendVerification)
+
+router.get('/policy-status', authenticate, policyStatus)
+router.post('/accept-policy', authenticate, acceptPolicy)
 
 export default router
