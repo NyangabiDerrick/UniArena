@@ -5,12 +5,12 @@ import { prisma } from '../../config/prisma'
 import { sendSuccess, sendError } from '../../utils/response'
 import { AuthRequest } from '../../middleware/auth'
 import { sendVerificationEmail, sendResetEmail } from '../../utils/mailer'
+import { CURRENT_ACCEPTANCE } from '../../legal/policy'
 
 const DOMAIN = (process.env.ALLOWED_EMAIL_DOMAIN || 'university.ac').toLowerCase()
 const hashToken = (t: string) => crypto.createHash('sha256').update(t).digest('hex')
 const frontend = () => process.env.FRONTEND_URL || 'http://localhost:3000'
 
-// Stores a fresh hashed token and emails the link. Returns false if the email could not be sent.
 const issueVerification = async (user: { id: string; email: string; name: string }) => {
   const token = crypto.randomBytes(32).toString('hex')
   await prisma.user.update({
@@ -22,8 +22,12 @@ const issueVerification = async (user: { id: string; email: string; name: string
 
 export const register = async (req: Request, res: Response) => {
   try {
-    const { name, email, studentId, password, faculty } = req.body
+    const { name, email, studentId, password, faculty, acceptedPolicy } = req.body
     const cleanEmail = String(email).trim().toLowerCase()
+
+    if (acceptedPolicy !== true) {
+      return sendError(res, 'You must read and accept the Terms and Data Policy to create an account', 400)
+    }
 
     if (!cleanEmail.endsWith(`@${DOMAIN}`)) {
       return sendError(res, `Only @${DOMAIN} email addresses can register`, 403)
@@ -48,12 +52,13 @@ export const register = async (req: Request, res: Response) => {
         studentId: regNo,
         faculty: faculty || null,
         role: 'STUDENT',
-        passwordHash: await bcrypt.hash(password, 12)
+        passwordHash: await bcrypt.hash(password, 12),
+        policyVersion: CURRENT_ACCEPTANCE,
+        policyAcceptedAt: new Date()
       },
       select: { id: true, email: true, name: true }
     })
 
-    // A failed email must not block sign-up: the person can resend it from the top bar
     await issueVerification(user).catch(error => console.error('Verification email failed:', error))
 
     return sendSuccess(res, user, 'Account created. Check your university inbox to confirm your email.', 201)
@@ -93,7 +98,6 @@ export const forgotPassword = async (req: Request, res: Response) => {
       await sendResetEmail(user.email, user.name, `${frontend()}/auth/reset-password?token=${token}`)
     }
 
-    // Same reply whether or not the account exists, so emails can't be probed
     return sendSuccess(res, null, 'If that email has an account, a reset link has been sent.')
   } catch (error) {
     return sendError(res, 'Failed to process request', 500, error)
@@ -108,7 +112,6 @@ export const resetPassword = async (req: Request, res: Response) => {
     })
     if (!user) return sendError(res, 'This reset link is invalid or has expired', 400)
 
-    // Only the inbox owner can use this link, so it also proves the email is theirs
     await prisma.user.update({
       where: { id: user.id },
       data: {
@@ -124,7 +127,6 @@ export const resetPassword = async (req: Request, res: Response) => {
   }
 }
 
-// POST /api/auth/verify-email { token }
 export const verifyEmail = async (req: Request, res: Response) => {
   try {
     const user = await prisma.user.findFirst({
@@ -144,7 +146,6 @@ export const verifyEmail = async (req: Request, res: Response) => {
   }
 }
 
-// POST /api/auth/resend-verification (signed in)
 export const resendVerification = async (req: AuthRequest, res: Response) => {
   try {
     const user = await prisma.user.findUnique({

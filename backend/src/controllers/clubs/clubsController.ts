@@ -1,5 +1,5 @@
 import { Request, Response } from 'express'
-import { Prisma } from '@prisma/client'
+import { Prisma, ClubType } from '@prisma/client'
 import { prisma } from '../../config/prisma'
 import { sendSuccess, sendError } from '../../utils/response'
 import { AuthRequest } from '../../middleware/auth'
@@ -10,7 +10,8 @@ export const CLUB_CATEGORIES = ['Cultural', 'Academic', 'Arts', 'Religious', 'Sp
 export const getClubs = async (req: Request, res: Response) => {
   try {
     const { category, search, type } = req.query
-    const typeFilter = type === 'CLUB' || type === 'SOCIETY' ? { type } : {}
+    const typeFilter: { type?: ClubType } =
+      type === 'CLUB' || type === 'SOCIETY' ? { type: type as ClubType } : {}
 
     const clubs = await prisma.club.findMany({
       where: {

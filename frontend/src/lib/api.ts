@@ -45,6 +45,12 @@ export interface DiscussionList {
   posts: DiscussionPost[]
 }
 
+export interface PolicyStatus {
+  accepted: boolean
+  policyVersion: string
+  termsVersion: string
+}
+
 async function request<T>(
   endpoint: string,
   options: RequestInit = {}
@@ -158,9 +164,11 @@ export const api = {
     request<Event>(`/api/admin/approvals/events/${id}`, { method: "PUT", body: JSON.stringify({ status }) }),
   getAuditLogs: () => request<AuditLog[]>("/api/admin/audit-logs"),
 
-  // Users
+  // Users and policy
   getProfile: () => request<Profile & { bio?: string | null }>("/api/users/profile"),
   updateProfile: (data: ProfileUpdate) =>
     request<Profile & { bio?: string | null }>("/api/users/profile", { method: "PUT", body: JSON.stringify(data) }),
   getLeaveReasons: () => request<LeaveReason[]>("/api/users/leave-reasons"),
+  getPolicyStatus: () => request<PolicyStatus>("/api/auth/policy-status"),
+  acceptPolicy: () => request<null>("/api/auth/accept-policy", { method: "POST" }),
 }
