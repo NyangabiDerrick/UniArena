@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { signOut, useSession } from "next-auth/react"
 import { usePathname, useRouter } from "next/navigation"
-import { ArrowLeft, Bell, LogOut, User, MessageSquare, MailWarning } from "lucide-react"
+import { ArrowLeft, Bell, LogOut, User, MessageSquare, MailWarning, Menu } from "lucide-react"
 import Link from "next/link"
 import { getCounts } from "@/lib/countsApi"
 import { resendVerification } from "@/lib/verifyApi"
@@ -15,7 +15,7 @@ const badge: React.CSSProperties = {
   fontSize: 10, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center"
 }
 
-export default function Navbar() {
+export default function Navbar({ onMenu }: { onMenu?: () => void }) {
   const { data: session, status } = useSession()
   const pathname = usePathname()
   const router = useRouter()
@@ -35,7 +35,6 @@ export default function Navbar() {
       .catch(() => {})
   }, [])
 
-  // Refresh when you open a page, then every 30 seconds while the tab is visible
   useEffect(() => {
     if (status === "authenticated") refresh()
   }, [status, pathname, refresh])
@@ -61,12 +60,12 @@ export default function Navbar() {
   const iconLink: React.CSSProperties = {
     display: "flex", alignItems: "center", justifyContent: "center",
     width: 36, height: 36, borderRadius: 8, color: "#6B6962",
-    textDecoration: "none", position: "relative"
+    textDecoration: "none", position: "relative", flexShrink: 0
   }
 
   return (
     <header
-      className="bg-[#F8F7F4]/95"
+      className="app-navbar bg-[#F8F7F4]/95"
       style={{
         position: "fixed", top: 0, left: 240, right: 0, height: 60,
         backdropFilter: "blur(8px)", borderBottom: "1px solid #E4E2DC",
@@ -74,7 +73,19 @@ export default function Navbar() {
         padding: "0 28px", zIndex: 30
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+        <button
+          className="app-menu-btn"
+          onClick={onMenu}
+          aria-label="Open menu"
+          style={{
+            alignItems: "center", justifyContent: "center",
+            width: 36, height: 36, borderRadius: 8, border: "1.5px solid #E4E2DC",
+            background: "white", color: "#0B1D3A", cursor: "pointer", flexShrink: 0
+          }}
+        >
+          <Menu size={18} />
+        </button>
         {pathname !== "/dashboard" && (
           <button
             onClick={goBack}
@@ -83,35 +94,35 @@ export default function Navbar() {
             style={{
               display: "flex", alignItems: "center", justifyContent: "center",
               width: 34, height: 34, borderRadius: 8, border: "1.5px solid #E4E2DC",
-              background: "white", color: "#0B1D3A", cursor: "pointer"
+              background: "white", color: "#0B1D3A", cursor: "pointer", flexShrink: 0
             }}
           >
             <ArrowLeft size={16} />
           </button>
         )}
-        <div style={{ width: 3, height: 18, backgroundColor: "#C9A84C", borderRadius: 2 }} />
-        <span style={{ fontSize: 13, color: "#6B6962" }}>
+        <div className="app-hide-mobile" style={{ width: 3, height: 18, backgroundColor: "#C9A84C", borderRadius: 2 }} />
+        <span className="app-hide-mobile" style={{ fontSize: 13, color: "#6B6962" }}>
           Welcome back,{" "}
           <span style={{ fontWeight: 600, color: "#0B1D3A" }}>{session?.user?.name?.split(" ")[0]}</span>
         </span>
       </div>
 
-      <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
         {!verified && (
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginRight: 8 }}>
-            {mailNote && <span style={{ fontSize: 12, color: "#6B6962", maxWidth: 260 }}>{mailNote}</span>}
+            {mailNote && <span className="app-hide-mobile" style={{ fontSize: 12, color: "#6B6962", maxWidth: 260 }}>{mailNote}</span>}
             <button
               onClick={resend}
               disabled={sending}
               title="Confirm your university email to message, RSVP and join clubs"
               style={{
-                display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 8,
+                display: "flex", alignItems: "center", gap: 6, padding: "6px 10px", borderRadius: 8,
                 border: "1.5px solid #C9A84C", background: "#FFFBF0", color: "#92400E",
                 fontSize: 12, fontWeight: 600, cursor: sending ? "not-allowed" : "pointer", fontFamily: "'Inter', sans-serif"
               }}
             >
               <MailWarning size={14} />
-              {sending ? "Sending..." : "Confirm your email"}
+              <span className="app-hide-mobile">{sending ? "Sending..." : "Confirm your email"}</span>
             </button>
           </div>
         )}
@@ -130,18 +141,19 @@ export default function Navbar() {
           <User size={17} />
         </Link>
 
-        <div style={{ width: 1, height: 18, backgroundColor: "#E4E2DC", margin: "0 4px" }} />
+        <div className="app-hide-mobile" style={{ width: 1, height: 18, backgroundColor: "#E4E2DC", margin: "0 4px" }} />
 
         <button
           onClick={() => signOut({ callbackUrl: "/auth/login" })}
+          aria-label="Sign out"
           style={{
-            display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 8,
+            display: "flex", alignItems: "center", gap: 6, padding: "6px 10px", borderRadius: 8,
             border: "none", cursor: "pointer", backgroundColor: "transparent",
             color: "#DC2626", fontSize: 13, fontWeight: 500, fontFamily: "'Inter', sans-serif"
           }}
         >
           <LogOut size={15} />
-          Sign out
+          <span className="app-hide-mobile">Sign out</span>
         </button>
       </div>
     </header>
