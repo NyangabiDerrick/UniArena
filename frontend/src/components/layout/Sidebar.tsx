@@ -79,10 +79,11 @@ export default function Sidebar({ open = false, onNavigate }: Props) {
 
   return (
     <aside
-      className={`app-sidebar bg-[#0B1D3A]${open ? " open" : ""}`}
+      className={`app-sidebar${open ? " open" : ""}`}
       style={{
         position: "fixed", left: 0, top: 0, width: 240, height: "100vh",
         display: "flex", flexDirection: "column", zIndex: 40,
+        backgroundColor: "#0B1D3A",
         borderRight: "1px solid rgba(255,255,255,0.06)"
       }}
     >
