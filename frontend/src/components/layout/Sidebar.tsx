@@ -42,13 +42,17 @@ const navItems: NavItem[] = [
   { label: "Appeals", href: "/admin/appeals", icon: Scale, roles: ["ADMIN"] },
 ]
 
-export default function Sidebar() {
+interface Props {
+  open?: boolean
+  onNavigate?: () => void
+}
+
+export default function Sidebar({ open = false, onNavigate }: Props) {
   const pathname = usePathname()
   const { data: session, status } = useSession()
   const userRole = session?.user?.role || "STUDENT"
   const [leads, setLeads] = useState<{ club: boolean; team: boolean } | null>(null)
 
-  // A leader's current group comes from the database, so it is right even just after an assignment
   useEffect(() => {
     if (status !== "authenticated" || userRole !== "CLUB_LEADER") return
     let cancelled = false
@@ -69,14 +73,13 @@ export default function Sidebar() {
     return true
   })
 
-  // The most specific matching item is the active one
   const activeHref = visible
     .filter(i => pathname === i.href || pathname.startsWith(i.href + "/"))
     .sort((a, b) => b.href.length - a.href.length)[0]?.href
 
   return (
     <aside
-      className="bg-[#0B1D3A]"
+      className={`app-sidebar bg-[#0B1D3A]${open ? " open" : ""}`}
       style={{
         position: "fixed", left: 0, top: 0, width: 240, height: "100vh",
         display: "flex", flexDirection: "column", zIndex: 40,
@@ -86,7 +89,7 @@ export default function Sidebar() {
       <div style={{ height: 3, backgroundColor: "#C9A84C", flexShrink: 0 }} />
 
       <div style={{ padding: "18px 18px 14px", borderBottom: "1px solid rgba(255,255,255,0.07)", flexShrink: 0 }}>
-        <Link href="/dashboard" style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 10 }}>
+        <Link href="/dashboard" onClick={onNavigate} style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{
             width: 36, height: 36, borderRadius: 8, backgroundColor: "#C9A84C", color: "#0B1D3A",
             display: "flex", alignItems: "center", justifyContent: "center",
@@ -107,6 +110,7 @@ export default function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
+              onClick={onNavigate}
               style={{
                 display: "flex", alignItems: "center", gap: 10,
                 padding: "9px 12px", borderRadius: 8, marginBottom: 2,
