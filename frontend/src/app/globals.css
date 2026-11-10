@@ -1,0 +1,41 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Inter:wght@300;400;500;600&display=swap');
+@import "tailwindcss";
+
+:root {
+  --navy: #0B1D3A;
+  --navy-light: #152848;
+  --navy-muted: #1E3560;
+  --gold: #C9A84C;
+  --gold-light: #E2C06E;
+  --gold-dim: rgba(201,168,76,0.15);
+  --cream: #F8F7F4;
+  --white: #FFFFFF;
+  --border: #E4E2DC;
+  --text: #1A1916;
+  --text-muted: #6B6962;
+  --sidebar-width: 240px;
+  --navbar-height: 60px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: var(--cream);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4 {
+  font-family: 'Playfair Display', serif;
+}
+
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #D0CDC6; border-radius: 99px; }
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.fade-up { animation: fadeUp 0.4s ease forwards; }

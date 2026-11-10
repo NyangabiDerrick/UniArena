@@ -1,0 +1,507 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String   @id @default(cuid())
+  studentId   String   @unique
+  email       String   @unique
+  name        String
+  faculty     String?
+  yearOfStudy Int?
+  bio              String?
+  policyVersion    String?
+  policyAcceptedAt DateTime?
+  role        Role     @default(STUDENT)
+  avatarUrl   String?
+  isActive    Boolean  @default(true)
+  managedClubId String?
+  managedClub   Club?       @relation("ClubLeader", fields: [managedClubId], references: [id])
+  managedTeamId String?
+  managedTeam   SportsTeam? @relation("TeamLeader", fields: [managedTeamId], references: [id])
+  emailVerified    Boolean   @default(false)
+  passwordHash     String?
+  resetToken       String?
+  resetTokenExpiry DateTime?
+  verifyToken       String?
+  verifyTokenExpiry DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  blocksMade      UserBlock[]     @relation("Blocker")
+  blocksReceived  UserBlock[]     @relation("Blocked")
+  reportsMade     MessageReport[] @relation("Reporter")
+  reportsAgainst  MessageReport[] @relation("Reported")
+  warnings        Warning[] @relation("WarningTarget")
+  warningsIssued  Warning[] @relation("WarningIssuer")
+  appeals         Appeal[]  @relation("AppealUser")
+
+  clubMemberships  ClubMembership[]
+  clubCommittees   ClubCommittee[]
+  squadMemberships SquadMember[]
+  tickets          Ticket[]
+  articles         Article[]
+  comments         Comment[]
+  mediaUploads     Media[]
+  notifications    Notification[]
+  sentMessages     Message[]       @relation("SentMessages")
+  receivedMessages Message[]       @relation("ReceivedMessages")
+  discussionPosts  DiscussionBoard[]
+  auditLogs        AuditLog[]
+  createdEvents    Event[]
+  advisedClubs     Club[]          @relation("ClubAdvisor")
+}
+
+model Club {
+  id          String     @id @default(cuid())
+  name        String     @unique
+  description String?
+  category    String
+  logoUrl     String?
+  bannerUrl   String?
+  status      ClubStatus @default(PENDING)
+  foundedAt   DateTime?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  type    ClubType @default(CLUB)
+  leaders User[]   @relation("ClubLeader")
+
+  advisorId String?
+  advisor   User?   @relation("ClubAdvisor", fields: [advisorId], references: [id])
+
+  memberships     ClubMembership[]
+  committees      ClubCommittee[]
+  documents       ClubDocument[]
+  events          Event[]
+  articles        Article[]
+  galleries       Gallery[]
+  discussionBoards DiscussionBoard[]
+}
+
+model ClubMembership {
+  id        String       @id @default(cuid())
+  userId    String
+  clubId    String
+  status    MemberStatus @default(PENDING)
+  tier      String       @default("free")
+  joinedAt  DateTime     @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+  club Club @relation(fields: [clubId], references: [id])
+
+  @@unique([userId, clubId])
+}
+
+model ClubCommittee {
+  id         String   @id @default(cuid())
+  userId     String
+  clubId     String
+  role       String
+  assignedAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+  club Club @relation(fields: [clubId], references: [id])
+}
+
+model ClubDocument {
+  id         String   @id @default(cuid())
+  clubId     String
+  name       String
+  fileUrl    String
+  uploadedAt DateTime @default(now())
+
+  club Club @relation(fields: [clubId], references: [id])
+}
+
+model SportsTeam {
+  id          String     @id @default(cuid())
+  name        String     @unique
+  sport       String
+  description String?
+  logoUrl     String?
+  bannerUrl   String?
+  status      ClubStatus @default(PENDING)
+  season      String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  leaders User[] @relation("TeamLeader")
+
+  squadMembers SquadMember[]
+  fixtures     Fixture[]
+  trainingSessions TrainingSession[]
+  events       Event[]
+  articles     Article[]
+  galleries    Gallery[]
+}
+
+model SquadMember {
+  id          String   @id @default(cuid())
+  userId      String
+  teamId      String
+  position    String?
+  jerseyNumber Int?
+  isInjured   Boolean  @default(false)
+  isAvailable Boolean  @default(true)
+  joinedAt    DateTime @default(now())
+
+  user User       @relation(fields: [userId], references: [id])
+  team SportsTeam @relation(fields: [teamId], references: [id])
+
+  @@unique([userId, teamId])
+  @@unique([teamId, jerseyNumber])
+}
+
+model Fixture {
+  id          String        @id @default(cuid())
+  teamId      String
+  opposition  String
+  venue       String
+  isHome      Boolean       @default(true)
+  scheduledAt DateTime
+  status      FixtureStatus @default(UPCOMING)
+  homeScore   Int?
+  awayScore   Int?
+  notes       String?
+  createdAt   DateTime      @default(now())
+
+  team SportsTeam @relation(fields: [teamId], references: [id])
+}
+
+model Event {
+  id          String      @id @default(cuid())
+  title       String
+  description String?
+  clubId      String?
+  teamId      String?
+  venue       String
+  startsAt    DateTime
+  endsAt      DateTime
+  capacity    Int
+  status      EventStatus @default(PENDING)
+  isFree      Boolean     @default(false)
+  createdBy   String
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  category EventCategory @default(SOCIAL)
+  moderationNote   String?
+  suspendedByAdmin Boolean @default(false)
+
+  club    Club?       @relation(fields: [clubId], references: [id])
+  team    SportsTeam? @relation(fields: [teamId], references: [id])
+  creator User        @relation(fields: [createdBy], references: [id])
+  tickets Ticket[]
+}
+
+model Ticket {
+  id              String   @id @default(cuid())
+  eventId         String
+  userId          String
+  type            String   @default("standard")
+  price           Decimal
+  qrCode          String   @unique
+  isUsed          Boolean  @default(false)
+  stripePaymentId String?
+  purchasedAt     DateTime @default(now())
+
+  event Event @relation(fields: [eventId], references: [id])
+  user  User  @relation(fields: [userId], references: [id])
+}
+
+model Article {
+  id               String        @id @default(cuid())
+  title            String
+  content          String
+  authorId         String
+  clubId           String?
+  teamId           String?
+  isUniversityWide Boolean       @default(false)
+  isPinned         Boolean       @default(false)
+  status           ArticleStatus @default(PENDING)
+  tags             String[]
+  coverImageUrl    String?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  category ArticleCategory @default(UNIVERSITY)
+  moderationNote  String?
+  removedByAdmin  Boolean @default(false)
+
+  author   User        @relation(fields: [authorId], references: [id])
+  club     Club?       @relation(fields: [clubId], references: [id])
+  team     SportsTeam? @relation(fields: [teamId], references: [id])
+  comments Comment[]
+}
+
+model Comment {
+  id         String   @id @default(cuid())
+  articleId  String
+  userId     String
+  content    String
+  isApproved Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  article Article @relation(fields: [articleId], references: [id])
+  user    User    @relation(fields: [userId], references: [id])
+}
+
+model Gallery {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  clubId      String?
+  teamId      String?
+  createdAt   DateTime @default(now())
+
+  club  Club?       @relation(fields: [clubId], references: [id])
+  team  SportsTeam? @relation(fields: [teamId], references: [id])
+  media Media[]
+}
+
+model Media {
+  id         String    @id @default(cuid())
+  galleryId  String
+  uploadedBy String
+  fileUrl    String
+  type       MediaType
+  isApproved Boolean   @default(false)
+  caption    String?
+  uploadedAt DateTime  @default(now())
+
+  gallery  Gallery @relation(fields: [galleryId], references: [id])
+  uploader User    @relation(fields: [uploadedBy], references: [id])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  type      String
+  isRead    Boolean  @default(false)
+  link      String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model Message {
+  id         String   @id @default(cuid())
+  senderId   String
+  receiverId String
+  content    String
+  isRead     Boolean  @default(false)
+  sentAt     DateTime @default(now())
+
+  sender   User @relation("SentMessages", fields: [senderId], references: [id])
+  receiver User @relation("ReceivedMessages", fields: [receiverId], references: [id])
+}
+
+model DiscussionBoard {
+  id        String   @id @default(cuid())
+  clubId    String
+  userId    String
+  title     String
+  content   String
+  isPinned  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  club Club @relation(fields: [clubId], references: [id])
+  user User @relation(fields: [userId], references: [id])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  adminId    String
+  action     String
+  targetType String
+  targetId   String
+  details    String?
+  createdAt  DateTime @default(now())
+
+  admin User @relation(fields: [adminId], references: [id])
+}
+
+enum Role {
+  STUDENT
+  CLUB_LEADER
+  SPORTS_CAPTAIN
+  LECTURER
+  MODERATOR
+  ADMIN
+}
+
+enum ClubStatus {
+  PENDING
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum MemberStatus {
+  PENDING
+  ACTIVE
+  REJECTED
+  BANNED
+}
+
+enum FixtureStatus {
+  UPCOMING
+  LIVE
+  COMPLETED
+  SUSPENDED
+  CANCELLED
+}
+
+enum EventStatus {
+  PENDING
+  APPROVED
+  CANCELLED
+  COMPLETED
+  SUSPENDED
+}
+
+enum ArticleStatus {
+  PENDING
+  PUBLISHED
+  REJECTED
+  ARCHIVED
+  HIDDEN
+  REMOVED
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+}
+
+enum ClubType {
+  CLUB
+  SOCIETY
+}
+
+enum ReportStatus {
+  OPEN
+  RESOLVED
+  DISMISSED
+}
+
+model UserBlock {
+  id        String   @id @default(cuid())
+  blockerId String
+  blockedId String
+  createdAt DateTime @default(now())
+
+  blocker User @relation("Blocker", fields: [blockerId], references: [id])
+  blocked User @relation("Blocked", fields: [blockedId], references: [id])
+
+  @@unique([blockerId, blockedId])
+}
+
+model MessageReport {
+  id           String       @id @default(cuid())
+  reporterId   String
+  reportedId   String
+  reason       String
+  details      String?
+  evidence     String?
+  status       ReportStatus @default(OPEN)
+  resolution   String?
+  resolvedById String?
+  createdAt    DateTime     @default(now())
+  resolvedAt   DateTime?
+  targetType ReportTarget @default(MESSAGE)
+  targetId   String?
+
+  reporter User @relation("Reporter", fields: [reporterId], references: [id])
+  reported User @relation("Reported", fields: [reportedId], references: [id])
+}
+
+enum ReportTarget {
+  MESSAGE
+  COMMENT
+  EVENT
+  ARTICLE
+}
+
+enum AppealStatus {
+  OPEN
+  APPROVED
+  REJECTED
+}
+
+model Warning {
+  id         String   @id @default(cuid())
+  userId     String
+  reportId   String?
+  message    String
+  issuedById String
+  createdAt  DateTime @default(now())
+
+  user     User @relation("WarningTarget", fields: [userId], references: [id])
+  issuedBy User @relation("WarningIssuer", fields: [issuedById], references: [id])
+}
+
+model Appeal {
+  id          String       @id @default(cuid())
+  userId      String
+  message     String
+  status      AppealStatus @default(OPEN)
+  decision    String?
+  decidedById String?
+  createdAt   DateTime     @default(now())
+  decidedAt   DateTime?
+
+  user User @relation("AppealUser", fields: [userId], references: [id])
+}
+
+enum EventCategory {
+  SOCIAL
+  CLUB
+  SPORTS
+  UNIVERSITY
+  ACADEMIC
+}
+
+enum ArticleCategory {
+  CLUB
+  SPORTS
+  UNIVERSITY
+}
+
+model TrainingSession {
+  id        String   @id @default(cuid())
+  teamId    String
+  dayOfWeek Int
+  startTime String
+  endTime   String
+  venue     String
+  notes     String?
+  createdAt DateTime @default(now())
+
+  team SportsTeam @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@index([teamId])
+}
+
+model MembershipExit {
+  id        String   @id @default(cuid())
+  userId    String
+  clubId    String
+  reason    ExitReason
+  createdAt DateTime @default(now())
+
+  @@index([clubId])
+}
+
+enum ExitReason {
+  SCHEDULE_CLASH
+  NO_LONGER_INTERESTED
+  MOVING_ON
+  COST
+  NOT_WELCOMING
+  OTHER
+  PREFER_NOT_TO_SAY
+}

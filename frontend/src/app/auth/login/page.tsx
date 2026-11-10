@@ -1,0 +1,66 @@
+"use client"
+
+import { signIn } from "next-auth/react"
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import Link from "next/link"
+import AuthShell, { inputStyle, labelStyle, primaryButton, errorBox, linkStyle } from "@/components/layout/AuthShell"
+import PasswordInput from "@/components/layout/PasswordInput"
+
+export default function LoginPage() {
+  const router = useRouter()
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [error, setError] = useState("")
+  const [loading, setLoading] = useState(false)
+
+  const suspended = error.toLowerCase().includes("suspended")
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+    setError("")
+    const result = await signIn("credentials", { email: email.trim(), password, redirect: false })
+    if (result?.error) {
+      setError(result.error === "CredentialsSignin" ? "Invalid email or password" : result.error)
+      setLoading(false)
+    } else {
+      router.replace("/dashboard")
+    }
+  }
+
+  return (
+    <AuthShell title="Welcome back" subtitle="Sign in with your university email to continue">
+      {error && (
+        <div style={errorBox}>
+          {error}
+          {suspended && (
+            <div style={{ marginTop: 8 }}>
+              <Link href="/auth/appeal" style={linkStyle}>Appeal this decision</Link>
+            </div>
+          )}
+        </div>
+      )}
+
+      <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        <div>
+          <label htmlFor="email" style={labelStyle}>University Email</label>
+          <input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)}
+            placeholder="bsccs202430303@mylife.mku.ac.ke" required autoComplete="email" style={inputStyle} />
+        </div>
+        <div>
+          <label htmlFor="password" style={labelStyle}>Password</label>
+          <PasswordInput id="password" value={password} onChange={setPassword} autoComplete="current-password" />
+        </div>
+        <button type="submit" disabled={loading} style={primaryButton(loading)}>
+          {loading ? "Signing in..." : "Sign in to UniArena"}
+        </button>
+      </form>
+
+      <div style={{ marginTop: 20, fontSize: 13, color: "#6B6962", display: "flex", flexDirection: "column", gap: 8 }}>
+        <Link href="/auth/forgot-password" style={linkStyle}>Forgot your password?</Link>
+        <span>New to UniArena? <Link href="/auth/register" style={linkStyle}>Create an account</Link></span>
+      </div>
+    </AuthShell>
+  )
+}
