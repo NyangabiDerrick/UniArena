@@ -8,8 +8,8 @@ import Sidebar from "./Sidebar"
 import Navbar from "./Navbar"
 
 const footerLink: React.CSSProperties = { color: "#6B6962", textDecoration: "underline" }
+const PAGE_BG = "#F8F7F4"
 
-// One set of phone rules for every signed-in page
 const css = `
 .app-main { margin-left: 240px; }
 .app-pad { padding: 32px; }
@@ -44,15 +44,14 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
     if (status === "unauthenticated") router.push("/auth/login")
   }, [status, router])
 
-  // Close the menu after moving to another page
   useEffect(() => {
     setMenuOpen(false)
   }, [pathname])
 
   if (status === "loading") {
     return (
-      <div className="bg-[#F8F7F4]" style={{
-        minHeight: "100vh", display: "flex",
+      <div style={{
+        minHeight: "100vh", display: "flex", backgroundColor: PAGE_BG,
         alignItems: "center", justifyContent: "center"
       }}>
         <p style={{ color: "#6B6962", fontSize: 14 }}>Loading UniArena...</p>
@@ -63,14 +62,14 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   if (!session) return null
 
   return (
-    <div className="bg-[#F8F7F4]" style={{ minHeight: "100vh" }}>
+    <div style={{ minHeight: "100vh", backgroundColor: PAGE_BG }}>
       <style>{css}</style>
       <div className={`app-backdrop${menuOpen ? " open" : ""}`} onClick={() => setMenuOpen(false)} />
       <Sidebar open={menuOpen} onNavigate={() => setMenuOpen(false)} />
       <Navbar onMenu={() => setMenuOpen(o => !o)} />
       <main
-        className="app-main bg-[#F8F7F4]"
-        style={{ paddingTop: 60, minHeight: "100vh", display: "flex", flexDirection: "column" }}
+        className="app-main"
+        style={{ paddingTop: 60, minHeight: "100vh", display: "flex", flexDirection: "column", backgroundColor: PAGE_BG }}
       >
         <div className="app-pad" style={{ flex: 1, minWidth: 0 }}>{children}</div>
         <footer style={{

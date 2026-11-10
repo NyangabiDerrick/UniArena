@@ -65,9 +65,10 @@ export default function Navbar({ onMenu }: { onMenu?: () => void }) {
 
   return (
     <header
-      className="app-navbar bg-[#F8F7F4]/95"
+      className="app-navbar"
       style={{
         position: "fixed", top: 0, left: 240, right: 0, height: 60,
+        backgroundColor: "rgba(248,247,244,0.95)",
         backdropFilter: "blur(8px)", borderBottom: "1px solid #E4E2DC",
         display: "flex", alignItems: "center", justifyContent: "space-between",
         padding: "0 28px", zIndex: 30
