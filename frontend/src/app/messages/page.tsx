@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react"
 import { useSession } from "next-auth/react"
 import MainLayout from "@/components/layout/MainLayout"
-import { Send, Search, Plus, MessageSquare, Flag, Ban } from "lucide-react"
+import { Send, Search, Plus, MessageSquare, Flag, Ban, ArrowLeft } from "lucide-react"
 import {
   getConversations, getContacts, getThread, sendMessage,
   getBlocks, blockUser, unblockUser, reportUser,
@@ -25,6 +25,21 @@ const shortTime = (d: string) => {
     ? date.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
     : date.toLocaleDateString("en-GB", { day: "numeric", month: "short" })
 }
+
+// On phones the list and the chat take turns instead of sharing the width
+const css = `
+.msg-back { display: none; }
+@media (max-width: 900px) {
+  .msg-shell { height: calc(100dvh - 130px) !important; min-height: 380px !important; border-radius: 12px !important; }
+  .msg-list { width: 100% !important; border-right: none !important; }
+  .msg-shell[data-chat="open"] .msg-list { display: none !important; }
+  .msg-shell:not([data-chat="open"]) .msg-chat { display: none !important; }
+  .msg-back { display: flex !important; }
+  .msg-bubble { max-width: 85% !important; }
+  .msg-label { display: none; }
+  .msg-pad { padding-left: 12px !important; padding-right: 12px !important; }
+}
+`
 
 const smallBtn: React.CSSProperties = {
   display: "flex", alignItems: "center", gap: 5, padding: "6px 12px", borderRadius: 8,
@@ -110,7 +125,7 @@ export default function MessagesPage() {
   }, [status, showBlocked, refreshBlocked])
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" })
+    bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" })
   }, [thread.length, partnerId])
 
   const openConversation = (p: Partner) => {
@@ -191,11 +206,12 @@ export default function MessagesPage() {
 
   return (
     <MainLayout>
+      <style>{css}</style>
       <div style={{ maxWidth: 1080, margin: "0 auto" }}>
-        <div style={{ background: "white", borderRadius: 16, border: "1px solid #E4E2DC", overflow: "hidden", display: "flex", height: "calc(100vh - 190px)", minHeight: 440 }}>
+        <div className="msg-shell" data-chat={partner ? "open" : "list"} style={{ background: "white", borderRadius: 16, border: "1px solid #E4E2DC", overflow: "hidden", display: "flex", height: "calc(100vh - 190px)", minHeight: 440 }}>
 
           {/* Left: conversations */}
-          <div style={{ width: 310, borderRight: "1px solid #E4E2DC", display: "flex", flexDirection: "column", flexShrink: 0 }}>
+          <div className="msg-list" style={{ width: 310, borderRight: "1px solid #E4E2DC", display: "flex", flexDirection: "column", flexShrink: 0 }}>
             <div style={{ padding: "18px 16px 14px", borderBottom: "1px solid #E4E2DC" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                 <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, color: "#0B1D3A" }}>Messages</h2>
@@ -274,7 +290,7 @@ export default function MessagesPage() {
           </div>
 
           {/* Right: chat */}
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
+          <div className="msg-chat" style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
             {!partner ? (
               <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12 }}>
                 <MessageSquare size={40} color="#E4E2DC" />
@@ -282,33 +298,37 @@ export default function MessagesPage() {
               </div>
             ) : (
               <>
-                <div style={{ padding: "16px 20px", borderBottom: "1px solid #E4E2DC", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                <div className="msg-pad" style={{ padding: "16px 20px", borderBottom: "1px solid #E4E2DC", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
+                    <button className="msg-back" onClick={() => { setPartner(null); setThread([]) }} aria-label="Back to conversations"
+                      style={{ ...smallBtn, padding: 8, flexShrink: 0 }}>
+                      <ArrowLeft size={16} />
+                    </button>
                     <div style={{ width: 36, height: 36, borderRadius: 9, background: "#0B1D3A", color: "#C9A84C", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 14, flexShrink: 0 }}>{partner.name.charAt(0)}</div>
                     <div style={{ minWidth: 0 }}>
-                      <p style={{ fontSize: 14, fontWeight: 600, color: "#0B1D3A" }}>{partner.name}</p>
-                      <p style={{ fontSize: 11, color: "#9CA3AF" }}>{partner.subtitle}</p>
+                      <p style={{ fontSize: 14, fontWeight: 600, color: "#0B1D3A", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{partner.name}</p>
+                      <p style={{ fontSize: 11, color: "#9CA3AF", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{partner.subtitle}</p>
                     </div>
                   </div>
                   <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-                    <button onClick={() => { setReporting(true); setError("") }} style={{ ...smallBtn, color: "#C2410C" }}>
-                      <Flag size={13} /> Report
+                    <button onClick={() => { setReporting(true); setError("") }} aria-label="Report" style={{ ...smallBtn, color: "#C2410C" }}>
+                      <Flag size={13} /> <span className="msg-label">Report</span>
                     </button>
                     {!iBlocked && !partner.subtitle.startsWith("Administrator") && (
-                      <button onClick={block} style={{ ...smallBtn, color: "#DC2626" }}>
-                        <Ban size={13} /> Block
+                      <button onClick={block} aria-label="Block" style={{ ...smallBtn, color: "#DC2626" }}>
+                        <Ban size={13} /> <span className="msg-label">Block</span>
                       </button>
                     )}
                   </div>
                 </div>
 
-                <div style={{ flex: 1, overflowY: "auto", padding: 20, display: "flex", flexDirection: "column", gap: 10 }}>
+                <div className="msg-pad" style={{ flex: 1, overflowY: "auto", padding: 20, display: "flex", flexDirection: "column", gap: 10 }}>
                   {thread.length === 0 && <p style={{ fontSize: 13, color: "#9CA3AF", textAlign: "center", marginTop: 40 }}>No messages yet. Say hello.</p>}
                   {thread.map(m => {
                     const mine = m.senderId !== partner.id
                     return (
                       <div key={m.id} style={{ display: "flex", justifyContent: mine ? "flex-end" : "flex-start" }}>
-                        <div style={{ maxWidth: "65%", padding: "10px 14px", borderRadius: mine ? "16px 16px 4px 16px" : "16px 16px 16px 4px", background: mine ? "#0B1D3A" : "#F3F4F6", color: mine ? "white" : "#1A1916" }}>
+                        <div className="msg-bubble" style={{ maxWidth: "65%", padding: "10px 14px", borderRadius: mine ? "16px 16px 4px 16px" : "16px 16px 16px 4px", background: mine ? "#0B1D3A" : "#F3F4F6", color: mine ? "white" : "#1A1916" }}>
                           <p style={{ fontSize: 13, lineHeight: 1.5, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{m.content}</p>
                           <p style={{ fontSize: 10, marginTop: 4, color: mine ? "rgba(255,255,255,0.5)" : "#9CA3AF" }}>{shortTime(m.sentAt)}</p>
                         </div>
@@ -318,20 +338,20 @@ export default function MessagesPage() {
                   <div ref={bottomRef} />
                 </div>
 
-                {notice && <div style={{ padding: "8px 20px", fontSize: 12, color: "#166534", background: "#F0FDF4", borderTop: "1px solid #BBF7D0" }}>{notice}</div>}
-                {error && <div style={{ padding: "8px 20px", fontSize: 12, color: "#991B1B", background: "#FEF2F2", borderTop: "1px solid #FECACA" }}>{error}</div>}
+                {notice && <div className="msg-pad" style={{ padding: "8px 20px", fontSize: 12, color: "#166534", background: "#F0FDF4", borderTop: "1px solid #BBF7D0" }}>{notice}</div>}
+                {error && <div className="msg-pad" style={{ padding: "8px 20px", fontSize: 12, color: "#991B1B", background: "#FEF2F2", borderTop: "1px solid #FECACA" }}>{error}</div>}
 
                 {iBlocked ? (
-                  <div style={{ padding: "16px 20px", borderTop: "1px solid #E4E2DC", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+                  <div className="msg-pad" style={{ padding: "16px 20px", borderTop: "1px solid #E4E2DC", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
                     <p style={{ fontSize: 13, color: "#6B6962" }}>You blocked this person. Neither of you can send messages.</p>
                     <button onClick={() => unblock(partner)} style={{ ...smallBtn, color: "#0B1D3A" }}>Unblock</button>
                   </div>
                 ) : (
-                  <div style={{ padding: "14px 20px", borderTop: "1px solid #E4E2DC", display: "flex", gap: 10 }}>
+                  <div className="msg-pad" style={{ padding: "14px 20px", borderTop: "1px solid #E4E2DC", display: "flex", gap: 10 }}>
                     <input placeholder="Type a message..." value={text} maxLength={2000}
                       onChange={e => setText(e.target.value)}
                       onKeyDown={e => e.key === "Enter" && send()}
-                      style={{ flex: 1, padding: "11px 16px", fontSize: 13, borderRadius: 10, border: "1.5px solid #E4E2DC", outline: "none", fontFamily: "'Inter', sans-serif" }} />
+                      style={{ flex: 1, minWidth: 0, padding: "11px 16px", fontSize: 13, borderRadius: 10, border: "1.5px solid #E4E2DC", outline: "none", fontFamily: "'Inter', sans-serif" }} />
                     <button onClick={send} disabled={!text.trim() || sending} aria-label="Send"
                       style={{ width: 42, height: 42, borderRadius: 10, border: "none", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center",
                         background: text.trim() && !sending ? "#0B1D3A" : "#E4E2DC", color: text.trim() && !sending ? "white" : "#9CA3AF",

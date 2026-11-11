@@ -30,9 +30,8 @@ export default function AdminInsightsPage() {
 
   const [groups, setGroups] = useState<GroupOption[]>([])
   const [selected, setSelected] = useState("")
-  const [insights, setInsights] = useState<GroupInsights | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState("")
+  const [result, setResult] = useState<{ id: string; insights: GroupInsights | null; error: string } | null>(null)
+  const [groupsError, setGroupsError] = useState("")
 
   useEffect(() => {
     if (status !== "authenticated" || !isAdmin) return
@@ -44,19 +43,16 @@ export default function AdminInsightsPage() {
         setGroups(clubs)
         setSelected(prev => prev || clubs[0]?.id || "")
       })
-      .catch(e => { if (!cancelled) setError(errorMessage(e)) })
+      .catch(e => { if (!cancelled) setGroupsError(errorMessage(e)) })
     return () => { cancelled = true }
   }, [status, isAdmin])
 
   useEffect(() => {
     if (!selected) return
     let cancelled = false
-    setLoading(true)
-    setError("")
     api.getGroupInsights(selected)
-      .then(res => { if (!cancelled) setInsights(res.data) })
-      .catch(e => { if (!cancelled) { setInsights(null); setError(errorMessage(e)) } })
-      .finally(() => { if (!cancelled) setLoading(false) })
+      .then(res => { if (!cancelled) setResult({ id: selected, insights: res.data, error: "" }) })
+      .catch(e => { if (!cancelled) setResult({ id: selected, insights: null, error: errorMessage(e) }) })
     return () => { cancelled = true }
   }, [selected])
 
@@ -64,6 +60,11 @@ export default function AdminInsightsPage() {
     return <p style={{ textAlign: "center", padding: "80px 0", fontSize: 14, color: "#6B6962" }}>Only administrators can view group insights.</p>
   }
 
+  // Results belong to the group they were fetched for, so switching group shows "loading"
+  const ready = result?.id === selected ? result : null
+  const loading = !!selected && !ready
+  const insights = ready?.insights ?? null
+  const error = groupsError || ready?.error || ""
   const current = groups.find(g => g.id === selected)
   const maxReason = Math.max(1, ...(insights?.reasons.map(r => r.count) ?? [1]))
   const monthKeys = Object.keys(insights?.monthly ?? {}).sort()

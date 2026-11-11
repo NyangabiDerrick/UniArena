@@ -54,9 +54,8 @@ export default function ManageClubPage() {
   useEffect(() => {
     if (tab !== "insights" || !club) return
     let cancelled = false
-    setInsightsError("")
     api.getGroupInsights(club.id)
-      .then(res => { if (!cancelled) setInsights(res.data) })
+      .then(res => { if (!cancelled) { setInsights(res.data); setInsightsError("") } })
       .catch(err => { if (!cancelled) setInsightsError(errorMessage(err)) })
     return () => { cancelled = true }
   }, [tab, club])
