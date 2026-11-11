@@ -31,6 +31,15 @@ const css = `
   [style*="position: sticky"] { position: static !important; }
   table { display: block; overflow-x: auto; max-width: 100%; }
   h1 { word-break: break-word; }
+  img, video { max-width: 100%; height: auto; }
+  select, input, textarea { max-width: 100%; }
+}
+
+/* 16px stops iOS zooming the page when a field is focused */
+@media (max-width: 600px) {
+  input, select, textarea { font-size: 16px !important; }
+  [style*="repeat(4, 1fr)"] { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+  .app-pad { padding: 12px !important; }
 }
 `
 
@@ -38,15 +47,15 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   const { data: session, status } = useSession()
   const router = useRouter()
   const pathname = usePathname()
-  const [menuOpen, setMenuOpen] = useState(false)
+  // The menu is open for one page only, so navigating closes it without an effect
+  const [menuPath, setMenuPath] = useState<string | null>(null)
+  const menuOpen = menuPath === pathname
+  const setMenuOpen = (open: boolean | ((o: boolean) => boolean)) =>
+    setMenuPath(prev => ((typeof open === "function" ? open(prev === pathname) : open) ? pathname : null))
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/auth/login")
   }, [status, router])
-
-  useEffect(() => {
-    setMenuOpen(false)
-  }, [pathname])
 
   if (status === "loading") {
     return (

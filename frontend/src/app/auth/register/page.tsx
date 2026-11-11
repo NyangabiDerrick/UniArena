@@ -28,6 +28,8 @@ export default function RegisterPage() {
   useEffect(() => {
     try {
       const saved = sessionStorage.getItem(DRAFT_KEY)
+      // Restoring from sessionStorage can only happen after mount (it does not exist on the server)
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       if (saved) setDraft({ ...emptyDraft, ...JSON.parse(saved) })
     } catch {
       // Ignore a damaged draft

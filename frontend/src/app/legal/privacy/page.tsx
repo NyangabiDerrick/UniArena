@@ -30,7 +30,7 @@ export default function PrivacyPage() {
         </ul>
       </Section>
       <Section n="5" title="Leave reasons and insights">
-        Leave reasons are never shown next to your name. Organisers see only totals, for example "3 members left in 90 days, 2 cited timetable clashes". Leave reasons are never used to make decisions about an individual's standing.
+        Leave reasons are never shown next to your name. Organisers see only totals, for example &quot;3 members left in 90 days, 2 cited timetable clashes&quot;. Leave reasons are never used to make decisions about an individual&apos;s standing.
       </Section>
       <Section n="6" title="Messages and reports">
         Messages are private between the two people. An administrator can read messages only as part of a report, and only the last few messages between the two people involved, not your full history.
