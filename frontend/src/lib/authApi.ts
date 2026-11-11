@@ -15,7 +15,7 @@ async function post(path: string, body: unknown): Promise<string> {
   const data = await res.json().catch(() => ({}))
   if (!res.ok) {
     const detail = Array.isArray(data.errors)
-      ? data.errors.map((e: any) => `${e.path}: ${e.msg}`).join(", ")
+      ? data.errors.map((e: { path: string; msg: string }) => `${e.path}: ${e.msg}`).join(", ")
       : ""
     throw new Error(data.message === "Validation error" && detail ? detail : data.message || "Something went wrong")
   }

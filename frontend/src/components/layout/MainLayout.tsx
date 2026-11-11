@@ -47,15 +47,15 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   const { data: session, status } = useSession()
   const router = useRouter()
   const pathname = usePathname()
-  const [menuOpen, setMenuOpen] = useState(false)
+  // The menu is open for one page only, so navigating closes it without an effect
+  const [menuPath, setMenuPath] = useState<string | null>(null)
+  const menuOpen = menuPath === pathname
+  const setMenuOpen = (open: boolean | ((o: boolean) => boolean)) =>
+    setMenuPath(prev => ((typeof open === "function" ? open(prev === pathname) : open) ? pathname : null))
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/auth/login")
   }, [status, router])
-
-  useEffect(() => {
-    setMenuOpen(false)
-  }, [pathname])
 
   if (status === "loading") {
     return (

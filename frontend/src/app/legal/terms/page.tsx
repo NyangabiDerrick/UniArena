@@ -24,7 +24,7 @@ export default function TermsPage() {
         You keep ownership of what you post. You give UniArena permission to display it within the platform.
       </Section>
       <Section n="7" title="Limits of liability">
-        To the extent the law allows, UniArena is not liable for losses arising from events, from other users' conduct, or from temporary service interruptions. Nothing here limits liability that cannot legally be limited.
+        To the extent the law allows, UniArena is not liable for losses arising from events, from other users&apos; conduct, or from temporary service interruptions. Nothing here limits liability that cannot legally be limited.
       </Section>
       <Section n="8" title="Ending your account">
         We may suspend or end accounts that break these terms. You may ask to delete your account at any time.
