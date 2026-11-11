@@ -31,6 +31,15 @@ const css = `
   [style*="position: sticky"] { position: static !important; }
   table { display: block; overflow-x: auto; max-width: 100%; }
   h1 { word-break: break-word; }
+  img, video { max-width: 100%; height: auto; }
+  select, input, textarea { max-width: 100%; }
+}
+
+/* 16px stops iOS zooming the page when a field is focused */
+@media (max-width: 600px) {
+  input, select, textarea { font-size: 16px !important; }
+  [style*="repeat(4, 1fr)"] { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+  .app-pad { padding: 12px !important; }
 }
 `
 
