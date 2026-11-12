@@ -46,7 +46,7 @@ export default function LoginPage() {
         <div>
           <label htmlFor="email" style={labelStyle}>University Email</label>
           <input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)}
-            placeholder="bsccs202430303@mylife.mku.ac.ke" required autoComplete="email" style={inputStyle} />
+            placeholder="***@mylife.mku.ac.ke" required autoComplete="email" style={inputStyle} />
         </div>
         <div>
           <label htmlFor="password" style={labelStyle}>Password</label>
