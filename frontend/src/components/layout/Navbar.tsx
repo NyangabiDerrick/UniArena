@@ -22,7 +22,7 @@ export default function Navbar({ onMenu }: { onMenu?: () => void }) {
   const [unread, setUnread] = useState(0)
   const [unreadMessages, setUnreadMessages] = useState(0)
   const [verified, setVerified] = useState(true)
-  const [mailNote, setMailNote] = useState("")
+  const [mailNote, setMailNote] = useState<{ text: string; ok: boolean } | null>(null)
   const [sending, setSending] = useState(false)
 
   const refresh = useCallback(() => {
@@ -45,13 +45,20 @@ export default function Navbar({ onMenu }: { onMenu?: () => void }) {
     else router.push("/dashboard")
   }
 
+  // The result shows as a toast on every screen size, then clears itself
+  useEffect(() => {
+    if (!mailNote) return
+    const timer = setTimeout(() => setMailNote(null), 7000)
+    return () => clearTimeout(timer)
+  }, [mailNote])
+
   const resend = async () => {
     setSending(true)
-    setMailNote("")
+    setMailNote(null)
     try {
-      setMailNote(await resendVerification())
+      setMailNote({ text: await resendVerification(), ok: true })
     } catch (e) {
-      setMailNote(e instanceof Error ? e.message : "Could not send the email")
+      setMailNote({ text: e instanceof Error ? e.message : "Could not send the email", ok: false })
     } finally {
       setSending(false)
     }
@@ -111,7 +118,6 @@ export default function Navbar({ onMenu }: { onMenu?: () => void }) {
       <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
         {!verified && (
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginRight: 8 }}>
-            {mailNote && <span className="app-hide-mobile" style={{ fontSize: 12, color: "#6B6962", maxWidth: 260 }}>{mailNote}</span>}
             <button
               onClick={resend}
               disabled={sending}
@@ -125,6 +131,17 @@ export default function Navbar({ onMenu }: { onMenu?: () => void }) {
               <MailWarning size={14} />
               <span className="app-hide-mobile">{sending ? "Sending..." : "Confirm your email"}</span>
             </button>
+          </div>
+        )}
+
+        {mailNote && (
+          <div role="status" onClick={() => setMailNote(null)} style={{
+            position: "fixed", top: 68, right: 16, left: 16, marginLeft: "auto", maxWidth: 360, zIndex: 60,
+            padding: "12px 16px", borderRadius: 10, fontSize: 13, lineHeight: 1.5, cursor: "pointer",
+            background: mailNote.ok ? "#F0FDF4" : "#FEF2F2", color: mailNote.ok ? "#166534" : "#991B1B",
+            border: `1px solid ${mailNote.ok ? "#BBF7D0" : "#FECACA"}`, boxShadow: "0 8px 24px rgba(0,0,0,0.12)"
+          }}>
+            {mailNote.text}
           </div>
         )}
 

@@ -109,7 +109,7 @@ export default function RegisterPage() {
         </div>
         <div>
           <label style={labelStyle}>University email</label>
-          <input type="email" value={draft.email} onChange={e => set("email")(e.target.value)} placeholder="bsccs202430303@mylife.mku.ac.ke" required autoComplete="username" style={inputStyle} />
+          <input type="email" value={draft.email} onChange={e => set("email")(e.target.value)} placeholder="***@mylife.mku.ac.ke" required autoComplete="username" style={inputStyle} />
         </div>
         <div>
           <label style={labelStyle}>Faculty (optional)</label>
