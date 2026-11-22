@@ -42,8 +42,8 @@ router.post('/',
   validate,
   createClub
 )
-router.post('/:id/join', authenticate, requireRole(ROLES.STUDENT), joinClub)
-router.post('/:id/leave', authenticate, requireRole(ROLES.STUDENT), leaveGroup)
+router.post('/:id/join', authenticate, joinClub)
+router.post('/:id/leave', authenticate, leaveGroup)
 router.get('/:id/members', authenticate, requireGroupManager('club'), getClubMembers)
 router.put('/:id/members/:userId',
   authenticate,
