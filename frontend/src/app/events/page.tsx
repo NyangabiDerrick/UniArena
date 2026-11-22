@@ -1,13 +1,13 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { Suspense, useState, useEffect } from "react"
 import MainLayout from "@/components/layout/MainLayout"
 import { Search, Calendar, Clock, MapPin, Users } from "lucide-react"
 import Link from "next/link"
 import { api } from "@/lib/api"
 import type { Event } from "@/lib/types"
 import { categoryLabel, eventCategory, eventSold, formatEventDate, formatEventTime } from "@/lib/format"
-import { useMyGroups } from "@/lib/myGroups"
+import { useMyGroups, useMineFromUrl } from "@/lib/myGroups"
 
 type EventWithOwner = Event & { clubId?: string | null; teamId?: string | null }
 
@@ -34,14 +34,15 @@ const badge = (bg: string, text: string): React.CSSProperties => ({
 
 const statusOf = (e: Event) => (e as { status?: string }).status
 
-export default function EventsPage() {
+function EventsContent() {
   const groups = useMyGroups()
+  const mineFromUrl = useMineFromUrl()
   const [events, setEvents] = useState<EventWithOwner[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
   const [selected, setSelected] = useState("ALL")
   const [freeOnly, setFreeOnly] = useState(false)
-  const [mineOnly, setMineOnly] = useState(false)
+  const [mineOnly, setMineOnly] = useState(mineFromUrl)
 
   useEffect(() => {
     let cancelled = false
@@ -57,8 +58,14 @@ export default function EventsPage() {
   const inMyGroups = (e: EventWithOwner) =>
     (!!e.clubId && groups.clubIds.has(e.clubId)) || (!!e.teamId && groups.teamIds.has(e.teamId))
 
+  // "My groups only": events of my groups plus university-wide ones, and nothing that has finished
+  const forMe = (e: EventWithOwner) => {
+    const ended = !!e.endsAt && new Date(e.endsAt) < new Date()
+    return !ended && (inMyGroups(e) || (!e.clubId && !e.teamId))
+  }
+
   const filtered = events
-    .filter(e => !mineOnly || inMyGroups(e))
+    .filter(e => !mineOnly || forMe(e))
     .filter(e => selected === "ALL" || eventCategory(e) === selected)
 
   return (
@@ -186,16 +193,20 @@ export default function EventsPage() {
           <div style={{ textAlign: "center", padding: "60px 0" }}>
             <p style={{ fontSize: 32, marginBottom: 12 }}>🔍</p>
             <p style={{ fontSize: 14, color: "#6B6962" }}>
-              {mineOnly && groups.ready && groups.clubIds.size + groups.teamIds.size === 0
-                ? "You aren't in any clubs or teams yet. Join one to see its events here."
-                : mineOnly
-                  ? "No upcoming events from your groups."
-                  : "No events found"}
+              {mineOnly ? "No upcoming events for you yet. Join a club or team to see more." : "No events found"}
             </p>
           </div>
         )}
 
       </div>
     </MainLayout>
+  )
+}
+
+export default function EventsPage() {
+  return (
+    <Suspense>
+      <EventsContent />
+    </Suspense>
   )
 }
