@@ -121,7 +121,7 @@ function GroupForm({ editing, onClose, onDone }: { editing: Row | null; onClose:
   const [kind, setKind] = useState<GroupKind>(editing?.kind ?? "CLUB")
   const [name, setName] = useState(editing?.name ?? "")
   const [description, setDescription] = useState(editing?.description ?? "")
-  const [category, setCategory] = useState(editing && editing.kind !== "TEAM" ? editing.detail : CLUB_CATEGORIES[0])
+  const [category, setCategory] = useState(editing && editing.kind !== "TEAM" ? editing.detail : "")
   const [sport, setSport] = useState(editing?.kind === "TEAM" ? editing.detail : "")
   const [season, setSeason] = useState(editing?.season ?? "")
   const [leader, setLeader] = useState<StudentHit | null>(null)
@@ -196,8 +196,9 @@ function GroupForm({ editing, onClose, onDone }: { editing: Row | null; onClose:
           </>
         ) : (
           <div>
-            <label style={labelStyle}>Category</label>
+            <label style={labelStyle}>Category (optional)</label>
             <select value={category} onChange={e => setCategory(e.target.value)} style={inputStyle}>
+              <option value="">No category</option>
               {CLUB_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
@@ -286,7 +287,7 @@ export default function GroupsPage() {
   const rows: Row[] = useMemo(() => {
     if (!data) return []
     const clubRows: Row[] = data.clubs.map(c => ({
-      key: `c-${c.id}`, id: c.id, kind: c.type, name: c.name, detail: c.category,
+      key: `c-${c.id}`, id: c.id, kind: c.type, name: c.name, detail: c.category ?? "",
       description: c.description, season: null, status: c.status, members: c.members, leaders: c.leaders
     }))
     const teamRows: Row[] = data.teams.map(t => ({
@@ -392,7 +393,7 @@ export default function GroupsPage() {
                   <div style={{ flex: 1, minWidth: 240 }}>
                     <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
                       <span style={badge(color.bg, color.text)}>{KIND_LABEL[r.kind]}</span>
-                      <span style={badge("#F1F5F9", "#475569")}>{r.detail}</span>
+                      {r.detail && <span style={badge("#F1F5F9", "#475569")}>{r.detail}</span>}
                       {r.season && <span style={badge("#F1F5F9", "#475569")}>Season {r.season}</span>}
                       {pending && <span style={badge("#FFFBEB", "#92400E")}>Waiting for approval</span>}
                       {archived && <span style={badge("#F3F4F6", "#6B7280")}>Archived</span>}

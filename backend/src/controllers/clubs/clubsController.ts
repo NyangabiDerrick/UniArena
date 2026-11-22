@@ -9,7 +9,7 @@ export const CLUB_CATEGORIES = ['Cultural', 'Academic', 'Arts', 'Religious', 'Sp
 // GET /api/clubs (public): active clubs and societies
 export const getClubs = async (req: Request, res: Response) => {
   try {
-    const { category, search, type } = req.query
+    const { search, type } = req.query
     const typeFilter: { type?: ClubType } =
       type === 'CLUB' || type === 'SOCIETY' ? { type: type as ClubType } : {}
 
@@ -17,7 +17,6 @@ export const getClubs = async (req: Request, res: Response) => {
       where: {
         status: 'ACTIVE',
         ...typeFilter,
-        ...(category && category !== 'All' ? { category: String(category) } : {}),
         ...(search ? {
           OR: [
             { name: { contains: String(search), mode: 'insensitive' } },
@@ -72,7 +71,7 @@ export const createClub = async (req: AuthRequest, res: Response) => {
     if (existing) return sendError(res, 'A club with this name already exists', 409)
 
     const club = await prisma.club.create({
-      data: { name, description, category, status: 'PENDING' }
+      data: { name, description, category: category || null, status: 'PENDING' }
     })
 
     return sendSuccess(res, club, 'Club creation request submitted successfully', 201)
@@ -205,7 +204,7 @@ export const updateMyClub = async (req: AuthRequest, res: Response) => {
     const type = req.body.type === 'SOCIETY' ? 'SOCIETY' : 'CLUB'
 
     if (name.length < 2 || name.length > 100) return sendError(res, 'The name must be 2 to 100 characters', 400)
-    if (!CLUB_CATEGORIES.includes(category)) return sendError(res, 'Choose a valid category', 400)
+    if (category && !CLUB_CATEGORIES.includes(category)) return sendError(res, 'Choose a valid category', 400)
     if (description.length > 1000) return sendError(res, 'The description must be 1000 characters or fewer', 400)
 
     const before = await prisma.club.findUnique({
@@ -216,14 +215,14 @@ export const updateMyClub = async (req: AuthRequest, res: Response) => {
 
     const changes: string[] = []
     if (before.name !== name) changes.push(`name: "${before.name}" to "${name}"`)
-    if (before.category !== category) changes.push(`category: ${before.category} to ${category}`)
+    if (before.category !== category) changes.push(`category: ${before.category ?? 'none'} to ${category || 'none'}`)
     if (before.type !== type) changes.push(`type: ${before.type} to ${type}`)
     if ((before.description ?? '') !== description) changes.push('description updated')
 
     const club = await prisma.$transaction(async tx => {
       const updated = await tx.club.update({
         where: { id: clubId },
-        data: { name, description: description || null, category, type }
+        data: { name, description: description || null, category: category || null, type }
       })
       await tx.auditLog.create({
         data: {

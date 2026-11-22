@@ -26,7 +26,7 @@ export interface ProfileUpdate {
 export interface MyClubUpdate {
   name: string
   description: string
-  category: string
+  category: string | null
   type: "CLUB" | "SOCIETY"
 }
 
@@ -87,7 +87,7 @@ const cleanParams = (params?: Params): Record<string, string> =>
 
 export const api = {
   // Clubs
-  getClubs: (params?: { category?: string; search?: string; type?: string }) => {
+  getClubs: (params?: { search?: string; type?: string }) => {
     const query = new URLSearchParams(cleanParams(params)).toString()
     return request<Club[]>(`/api/clubs${query ? `?${query}` : ""}`)
   },

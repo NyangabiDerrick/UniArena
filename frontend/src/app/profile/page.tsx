@@ -9,7 +9,7 @@ import type { Profile } from "@/lib/types"
 
 type ProfileData = Profile & {
   bio?: string | null
-  clubMemberships?: { id: string; club?: { id: string; name: string; category: string; type?: string } }[]
+  clubMemberships?: { id: string; club?: { id: string; name: string; category?: string | null; type?: string } }[]
 }
 
 const roleLabel: Record<string, string> = {
@@ -215,7 +215,7 @@ export default function ProfilePage() {
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
                       <div style={{ fontSize: 14, color: "#0B1D3A" }}>
                         {club.name}
-                        <span style={{ fontSize: 12, color: "#9CA3AF", marginLeft: 8 }}>{club.category}</span>
+                        <span style={{ fontSize: 12, color: "#9CA3AF", marginLeft: 8 }}>{club.category ?? ''}</span>
                       </div>
                       {!isLeaving && (
                         <button onClick={() => { setLeaving({ clubId: club.id, clubName: club.name }); setReason("PREFER_NOT_TO_SAY") }} style={linkBtn("#DC2626")}>

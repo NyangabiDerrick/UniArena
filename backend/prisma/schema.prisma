@@ -60,7 +60,7 @@ model Club {
   id          String     @id @default(cuid())
   name        String     @unique
   description String?
-  category    String
+  category    String?
   logoUrl     String?
   bannerUrl   String?
   status      ClubStatus @default(PENDING)
