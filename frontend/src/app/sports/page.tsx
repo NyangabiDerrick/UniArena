@@ -21,7 +21,7 @@ function SportsContent() {
   const [teams, setTeams] = useState<TeamCard[]>([])
   const [search, setSearch] = useState("")
   const [selected, setSelected] = useState("All")
-  const [mineOnly, setMineOnly] = useState(mineFromUrl)
+  const mineOnly = mineFromUrl
 
   useEffect(() => {
     let cancelled = false
@@ -65,14 +65,6 @@ function SportsContent() {
               }}
             />
           </div>
-          <label style={{
-            display: "flex", alignItems: "center", gap: 8, padding: "0 16px", background: mineOnly ? "#0B1D3A" : "white",
-            border: "1.5px solid #E4E2DC", borderRadius: 10, fontSize: 13, cursor: "pointer",
-            color: mineOnly ? "white" : "#6B6962", whiteSpace: "nowrap"
-          }}>
-            <input type="checkbox" checked={mineOnly} onChange={e => setMineOnly(e.target.checked)} />
-            My teams only
-          </label>
         </div>
 
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 24 }}>
@@ -162,7 +154,7 @@ function SportsContent() {
             <p style={{ fontSize: 14, color: "#6B6962" }}>
               {mineOnly ? "You aren't in a sports team yet." : "No teams found"}
             </p>
-            <button onClick={() => { setSearch(""); setSelected("All"); setMineOnly(false) }} style={{
+            <button onClick={() => { setSearch(""); setSelected("All") }} style={{
               marginTop: 12, fontSize: 13, color: "#0B1D3A",
               background: "none", border: "none", cursor: "pointer", textDecoration: "underline"
             }}>Clear filters</button>
