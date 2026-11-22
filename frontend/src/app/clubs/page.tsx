@@ -71,7 +71,7 @@ function ClubsContent() {
                 <Icon size={28} color="#1D4ED8" style={{ marginBottom: 14 }} />
                 <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, color: "#0B1D3A", marginBottom: 6 }}>{title}</h2>
                 <p style={{ fontSize: 13, color: "#6B6962", marginBottom: 14 }}>{text}</p>
-                <span style={{ fontSize: 12, fontWeight: 500, color: "#0B1D3A" }}>{loading ? "" : `${n} · `}View →</span>
+                <span style={{ fontSize: 12, fontWeight: 500, color: "#0B1D3A" }}>{loading ? "" : n === 0 ? "None yet" : `${n} ${n === 1 ? "group" : "groups"} · View →`}</span>
               </button>
             ))}
           </div>
