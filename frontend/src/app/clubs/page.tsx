@@ -2,7 +2,7 @@
 
 import { Suspense, useState, useEffect } from "react"
 import MainLayout from "@/components/layout/MainLayout"
-import { Search, Users } from "lucide-react"
+import { Search, Users, ArrowLeft, Building2, Landmark } from "lucide-react"
 import Link from "next/link"
 import { api } from "@/lib/api"
 import { imageSrc } from "@/lib/groupImagesApi"
@@ -10,11 +10,8 @@ import type { Club } from "@/lib/types"
 import { useMyGroups, useMineFromUrl } from "@/lib/myGroups"
 
 const categories = ["All", "Cultural", "Academic", "Arts", "Religious", "Sports", "Political", "Technology", "Social"]
-const types = [
-  { label: "All", value: "" },
-  { label: "Clubs", value: "CLUB" },
-  { label: "Societies", value: "SOCIETY" }
-]
+
+type View = "home" | "CLUB" | "SOCIETY" | "MINE"
 
 function ClubsContent() {
   const groups = useMyGroups()
@@ -23,16 +20,18 @@ function ClubsContent() {
   const [result, setResult] = useState<{ key: string; clubs: Club[] }>({ key: "", clubs: [] })
   const [search, setSearch] = useState("")
   const [category, setCategory] = useState("All")
-  const [type, setType] = useState("")
+  const [view, setView] = useState<View>(mineOnly ? "MINE" : "home")
+  const type = view === "CLUB" || view === "SOCIETY" ? view : ""
+  const showCategories = view === "CLUB" || view === "MINE"
 
-  const key = JSON.stringify([search, category, type])
+  const key = JSON.stringify([search, showCategories ? category : "All", type])
   const clubs = result.clubs.filter(c => !mineOnly || groups.clubIds.has(c.id))
   const loading = result.key !== key
 
   useEffect(() => {
     const params: { search?: string; category?: string; type?: string } = {}
     if (search) params.search = search
-    if (category !== "All") params.category = category
+    if (showCategories && category !== "All") params.category = category
     if (type) params.type = type
 
     api.getClubs(params)
@@ -41,7 +40,7 @@ function ClubsContent() {
         console.error("Failed to fetch clubs:", err)
         setResult({ key, clubs: [] })
       })
-  }, [search, category, type, key])
+  }, [search, category, type, showCategories, key])
 
   const pill = (active: boolean): React.CSSProperties => ({
     padding: "6px 14px", borderRadius: 99, fontSize: 12, fontWeight: 500,
@@ -61,22 +60,42 @@ function ClubsContent() {
           <p style={{ fontSize: 14, color: "#6B6962" }}>Discover and join the groups that match your interests</p>
         </div>
 
-        <div style={{ display: "flex", gap: 12, marginBottom: 16, flexWrap: "wrap" }}>
-        <div style={{ position: "relative", flex: 1, minWidth: 200 }}>
-          <Search size={15} style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: "#9CA3AF" }} />
-          <input type="text" placeholder="Search clubs and societies..." value={search} onChange={e => setSearch(e.target.value)}
-            style={{ width: "100%", padding: "11px 14px 11px 40px", fontSize: 13, borderRadius: 10, border: "1.5px solid #E4E2DC", background: "white", color: "#1A1916", outline: "none", fontFamily: "'Inter', sans-serif" }} />
-        </div>
-        </div>
+        {view === "home" ? (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 20, marginBottom: 32 }}>
+            {([
+              { v: "CLUB" as View, title: "Clubs", text: "Browse every club, filtered by category", Icon: Building2, n: result.clubs.filter(c => c.type === "CLUB").length },
+              { v: "SOCIETY" as View, title: "Societies", text: "See all the university societies", Icon: Landmark, n: result.clubs.filter(c => c.type === "SOCIETY").length }
+            ]).map(({ v, title, text, Icon, n }) => (
+              <button key={v} onClick={() => { setView(v); setSearch(""); setCategory("All") }}
+                style={{ textAlign: "left", background: "white", border: "1px solid #E4E2DC", borderRadius: 14, padding: 28, cursor: "pointer", fontFamily: "'Inter', sans-serif" }}>
+                <Icon size={28} color="#1D4ED8" style={{ marginBottom: 14 }} />
+                <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, color: "#0B1D3A", marginBottom: 6 }}>{title}</h2>
+                <p style={{ fontSize: 13, color: "#6B6962", marginBottom: 14 }}>{text}</p>
+                <span style={{ fontSize: 12, fontWeight: 500, color: "#0B1D3A" }}>{loading ? "" : `${n} · `}View →</span>
+              </button>
+            ))}
+          </div>
+        ) : (
+          <>
+            {view !== "MINE" && (
+              <button onClick={() => setView("home")} style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "#0B1D3A", marginBottom: 16, padding: 0 }}>
+                <ArrowLeft size={14} /> Clubs & Societies
+              </button>
+            )}
+            <div style={{ position: "relative", marginBottom: 16 }}>
+              <Search size={15} style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: "#9CA3AF" }} />
+              <input type="text" placeholder={view === "SOCIETY" ? "Search societies..." : view === "CLUB" ? "Search clubs..." : "Search your groups..."} value={search} onChange={e => setSearch(e.target.value)}
+                style={{ width: "100%", padding: "11px 14px 11px 40px", fontSize: 13, borderRadius: 10, border: "1.5px solid #E4E2DC", background: "white", color: "#1A1916", outline: "none", fontFamily: "'Inter', sans-serif" }} />
+            </div>
+            {showCategories && (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 24 }}>
+                {categories.map(c => <button key={c} onClick={() => setCategory(c)} style={pill(category === c)}>{c}</button>)}
+              </div>
+            )}
+          </>
+        )}
 
-        <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-          {types.map(t => <button key={t.label} onClick={() => setType(t.value)} style={pill(type === t.value)}>{t.label}</button>)}
-        </div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 24 }}>
-          {categories.map(c => <button key={c} onClick={() => setCategory(c)} style={pill(category === c)}>{c}</button>)}
-        </div>
-
-        {loading ? (
+        {view === "home" ? null : loading ? (
           <p style={{ textAlign: "center", padding: "60px 0", fontSize: 14, color: "#9CA3AF" }}>Loading...</p>
         ) : clubs.length === 0 ? (
           <div style={{ textAlign: "center", padding: "80px 0" }}>
