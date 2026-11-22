@@ -460,6 +460,7 @@ model Appeal {
 enum EventCategory {
   SOCIAL
   CLUB
+  SOCIETY
   SPORTS
   UNIVERSITY
   ACADEMIC
