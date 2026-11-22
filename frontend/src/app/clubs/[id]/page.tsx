@@ -21,7 +21,7 @@ const emptyState = (icon: React.ReactNode, text: string) => (
 
 export default function ClubProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
-  const { data: session, status } = useSession()
+  const { status } = useSession()
   const [club, setClub] = useState<Club | null>(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState("About")
@@ -37,11 +37,11 @@ export default function ClubProfilePage({ params }: { params: Promise<{ id: stri
   }, [id])
 
   useEffect(() => {
-    if (status !== "authenticated" || session?.user?.role !== "STUDENT") return
+    if (status !== "authenticated") return
     api.getMembershipStatus(id)
       .then(res => setMembership(res.data.status))
       .catch(() => setMembership(null))
-  }, [id, status, session?.user?.role])
+  }, [id, status])
 
   const join = async () => {
     setJoining(true)
@@ -76,7 +76,7 @@ export default function ClubProfilePage({ params }: { params: Promise<{ id: stri
   const isMember = membership === "ACTIVE"
 
   const joinButton = () => {
-    if (session?.user?.role !== "STUDENT" || membership === undefined) return null
+    if (status !== "authenticated" || membership === undefined) return null
     const base: React.CSSProperties = {
       display: "flex", alignItems: "center", gap: 8, padding: "10px 20px", borderRadius: 10,
       border: "none", fontSize: 13, fontWeight: 600, fontFamily: "'Inter', sans-serif"
