@@ -1,6 +1,7 @@
 import { Response } from 'express'
 import { prisma } from '../../config/prisma'
 import { AuthRequest } from '../../middleware/auth'
+import { myGroupIds, eventsForGroups, upcomingApproved } from '../../services/myGroups'
 
 const hideSecrets = { passwordHash: true, resetToken: true, resetTokenExpiry: true, verifyToken: true, verifyTokenExpiry: true } as const
 
@@ -163,30 +164,37 @@ export const getDashboard = async (req: AuthRequest, res: Response) => {
     const userId = req.user!.id
     const now = new Date()
 
-    const memberships = await prisma.clubMembership.findMany({
-      where: { userId, status: 'ACTIVE' },
-      include: { club: { select: { id: true, name: true, type: true, category: true } } }
-    })
-    const pendingRequests = await prisma.clubMembership.count({ where: { userId, status: 'PENDING' } })
-    const squads = await prisma.squadMember.findMany({
-      where: { userId },
-      include: { team: { select: { id: true, name: true, sport: true } } }
-    })
-
-    const clubIds = memberships.map(m => m.clubId)
-    const teamIds = squads.map(s => s.teamId)
+    const { clubIds, teamIds } = await myGroupIds(req.user!)
     const groupFilter: any[] = []
     if (clubIds.length) groupFilter.push({ clubId: { in: clubIds } })
     if (teamIds.length) groupFilter.push({ teamId: { in: teamIds } })
 
-    const events = groupFilter.length
-      ? await prisma.event.findMany({
-          where: { status: 'APPROVED', startsAt: { gte: now }, OR: groupFilter },
-          orderBy: { startsAt: 'asc' },
-          take: 5,
-          include: { club: { select: { name: true } }, team: { select: { name: true } } }
-        })
-      : []
+    // The same lists the "my clubs", "my teams" and "my events" pages show
+    const [clubs, teams, pendingRequests] = await Promise.all([
+      prisma.club.findMany({
+        where: { id: { in: clubIds }, status: 'ACTIVE' },
+        select: { id: true, name: true, type: true, category: true },
+        orderBy: { name: 'asc' }
+      }),
+      prisma.sportsTeam.findMany({
+        where: { id: { in: teamIds }, status: 'ACTIVE' },
+        select: { id: true, name: true, sport: true },
+        orderBy: { name: 'asc' }
+      }),
+      prisma.clubMembership.count({ where: { userId, status: 'PENDING' } })
+    ])
+
+    // Events of my groups plus university-wide events for everyone
+    const eventWhere = { ...upcomingApproved(now), AND: [eventsForGroups(clubIds, teamIds)] }
+    const [events, eventCount] = await Promise.all([
+      prisma.event.findMany({
+        where: eventWhere,
+        orderBy: { startsAt: 'asc' },
+        take: 5,
+        include: { club: { select: { name: true } }, team: { select: { name: true } } }
+      }),
+      prisma.event.count({ where: eventWhere })
+    ])
 
     const articles = await prisma.article.findMany({
       where: { status: 'PUBLISHED', OR: [...groupFilter, { isUniversityWide: true }] },
@@ -200,11 +208,12 @@ export const getDashboard = async (req: AuthRequest, res: Response) => {
     return res.json({
       success: true,
       data: {
-        clubs: memberships.map(m => m.club),
-        teams: squads.map(s => s.team),
+        clubs,
+        teams,
         pendingRequests,
         tickets,
         events,
+        eventCount,
         articles
       }
     })

@@ -1,13 +1,13 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { Suspense, useState, useEffect } from "react"
 import MainLayout from "@/components/layout/MainLayout"
 import { Search } from "lucide-react"
 import Link from "next/link"
 import { api } from "@/lib/api"
 import type { Article } from "@/lib/types"
 import { articleCategory, categoryLabel } from "@/lib/format"
-import { useMyGroups } from "@/lib/myGroups"
+import { useMyGroups, useMineFromUrl } from "@/lib/myGroups"
 
 type ArticleWithOwner = Article & { clubId?: string | null; teamId?: string | null }
 
@@ -31,13 +31,14 @@ const sourceOf = (a: Article) => {
   return "UniArena"
 }
 
-export default function NewsPage() {
+function NewsContent() {
   const groups = useMyGroups()
+  const mineFromUrl = useMineFromUrl()
   const [articles, setArticles] = useState<ArticleWithOwner[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
   const [selected, setSelected] = useState("ALL")
-  const [mineOnly, setMineOnly] = useState(false)
+  const [mineOnly, setMineOnly] = useState(mineFromUrl)
 
   useEffect(() => {
     let cancelled = false
@@ -54,7 +55,8 @@ export default function NewsPage() {
     (!!a.clubId && groups.clubIds.has(a.clubId)) || (!!a.teamId && groups.teamIds.has(a.teamId))
 
   const filtered = articles
-    .filter(a => !mineOnly || inMyGroups(a))
+    // "My groups only": news of my groups plus university-wide news
+    .filter(a => !mineOnly || inMyGroups(a) || !!a.isUniversityWide)
     .filter(a => selected === "ALL" || articleCategory(a) === selected)
   const pinned = filtered.filter(a => a.isPinned)
   const regular = filtered.filter(a => !a.isPinned)
@@ -144,11 +146,7 @@ export default function NewsPage() {
           <div style={{ textAlign: "center", padding: "60px 0" }}>
             <p style={{ fontSize: 32, marginBottom: 12 }}>📰</p>
             <p style={{ fontSize: 14, color: "#6B6962" }}>
-              {mineOnly && groups.ready && groups.clubIds.size + groups.teamIds.size === 0
-                ? "You aren't in any clubs or teams yet, so there's no group news to show."
-                : mineOnly
-                  ? "No news from your groups yet."
-                  : "No articles found"}
+              {mineOnly ? "No news for you yet. Join a club or team to see more." : "No articles found"}
             </p>
           </div>
         ) : (
@@ -171,5 +169,13 @@ export default function NewsPage() {
 
       </div>
     </MainLayout>
+  )
+}
+
+export default function NewsPage() {
+  return (
+    <Suspense>
+      <NewsContent />
+    </Suspense>
   )
 }

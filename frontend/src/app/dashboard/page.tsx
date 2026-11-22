@@ -27,9 +27,9 @@ export default function DashboardPage() {
   const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening"
 
   const stats = [
-    { label: "My clubs & societies", value: data?.clubs.length ?? 0, sub: data?.pendingRequests ? `${data.pendingRequests} request${data.pendingRequests > 1 ? "s" : ""} pending` : "Groups you belong to", href: "/clubs", icon: Users },
-    { label: "My sports teams", value: data?.teams.length ?? 0, sub: "Teams you play for", href: "/sports", icon: Trophy },
-    { label: "Upcoming events", value: data?.events.length ?? 0, sub: "From your groups", href: "/events", icon: Calendar },
+    { label: "My clubs & societies", value: data?.clubs.length ?? 0, sub: data?.pendingRequests ? `${data.pendingRequests} request${data.pendingRequests > 1 ? "s" : ""} pending` : "Groups you belong to", href: "/clubs?mine=1", icon: Users },
+    { label: "My sports teams", value: data?.teams.length ?? 0, sub: "Teams you play for", href: "/sports?mine=1", icon: Trophy },
+    { label: "Upcoming events", value: data?.eventCount ?? data?.events.length ?? 0, sub: "Your groups and the university", href: "/events?mine=1", icon: Calendar },
     { label: "My tickets", value: data?.tickets ?? 0, sub: "Upcoming events", href: "/tickets", icon: Ticket }
   ]
 
@@ -92,23 +92,29 @@ export default function DashboardPage() {
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
           <div style={{ ...card, padding: 24 }}>
-            <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 17, color: "#0B1D3A", marginBottom: 16 }}>Upcoming events</h2>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 16 }}>
+              <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 17, color: "#0B1D3A" }}>Upcoming events</h2>
+              <Link href="/events?mine=1" style={{ fontSize: 12, color: "#0B1D3A", textDecoration: "underline" }}>View all</Link>
+            </div>
             {!data || data.events.length === 0 ? (
-              <p style={{ fontSize: 13, color: "#6B6962" }}>No upcoming events from your groups.</p>
+              <p style={{ fontSize: 13, color: "#6B6962" }}>No upcoming events for you right now.</p>
             ) : data.events.map((ev: Event) => (
               <Link key={ev.id} href={`/events/${ev.id}`} style={{ textDecoration: "none", display: "block", padding: "12px 0", borderBottom: "1px solid #F3F4F6" }}>
                 <p style={{ fontSize: 14, fontWeight: 500, color: "#0B1D3A", marginBottom: 4 }}>{ev.title}</p>
                 <p style={{ fontSize: 12, color: "#9CA3AF", display: "flex", gap: 12, flexWrap: "wrap" }}>
                   <span>{when(ev.startsAt)}</span>
                   <span style={{ display: "flex", alignItems: "center", gap: 4 }}><MapPin size={11} />{ev.venue}</span>
-                  <span>{ev.club?.name || ev.team?.name}</span>
+                  <span>{ev.club?.name || ev.team?.name || "University"}</span>
                 </p>
               </Link>
             ))}
           </div>
 
           <div style={{ ...card, padding: 24 }}>
-            <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 17, color: "#0B1D3A", marginBottom: 16 }}>Latest news</h2>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 16 }}>
+              <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 17, color: "#0B1D3A" }}>Latest news</h2>
+              <Link href="/news?mine=1" style={{ fontSize: 12, color: "#0B1D3A", textDecoration: "underline" }}>View all</Link>
+            </div>
             {!data || data.articles.length === 0 ? (
               <p style={{ fontSize: 13, color: "#6B6962" }}>No news yet.</p>
             ) : data.articles.map((a: Article) => (
