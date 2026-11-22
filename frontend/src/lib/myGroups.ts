@@ -2,7 +2,12 @@
 
 import { useEffect, useState } from "react"
 import { useSession } from "next-auth/react"
+import { useSearchParams } from "next/navigation"
 import { api } from "./api"
+
+// True when the page was opened from the dashboard with ?mine=1, so it starts on "my groups".
+// Pages that use this must be rendered inside a <Suspense> boundary.
+export const useMineFromUrl = () => useSearchParams().get("mine") === "1"
 
 export interface MyGroups {
   clubIds: Set<string>

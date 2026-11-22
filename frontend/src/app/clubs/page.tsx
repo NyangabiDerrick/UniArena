@@ -1,12 +1,13 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { Suspense, useState, useEffect } from "react"
 import MainLayout from "@/components/layout/MainLayout"
 import { Search, Users } from "lucide-react"
 import Link from "next/link"
 import { api } from "@/lib/api"
 import { imageSrc } from "@/lib/groupImagesApi"
 import type { Club } from "@/lib/types"
+import { useMyGroups, useMineFromUrl } from "@/lib/myGroups"
 
 const categories = ["All", "Cultural", "Academic", "Arts", "Religious", "Sports", "Political", "Technology", "Social"]
 const types = [
@@ -15,14 +16,17 @@ const types = [
   { label: "Societies", value: "SOCIETY" }
 ]
 
-export default function ClubsPage() {
+function ClubsContent() {
+  const groups = useMyGroups()
+  const mineFromUrl = useMineFromUrl()
+  const [mineOnly, setMineOnly] = useState(mineFromUrl)
   const [result, setResult] = useState<{ key: string; clubs: Club[] }>({ key: "", clubs: [] })
   const [search, setSearch] = useState("")
   const [category, setCategory] = useState("All")
   const [type, setType] = useState("")
 
   const key = JSON.stringify([search, category, type])
-  const clubs = result.clubs
+  const clubs = result.clubs.filter(c => !mineOnly || groups.clubIds.has(c.id))
   const loading = result.key !== key
 
   useEffect(() => {
@@ -57,10 +61,20 @@ export default function ClubsPage() {
           <p style={{ fontSize: 14, color: "#6B6962" }}>Discover and join the groups that match your interests</p>
         </div>
 
-        <div style={{ position: "relative", marginBottom: 16 }}>
+        <div style={{ display: "flex", gap: 12, marginBottom: 16, flexWrap: "wrap" }}>
+        <div style={{ position: "relative", flex: 1, minWidth: 200 }}>
           <Search size={15} style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: "#9CA3AF" }} />
           <input type="text" placeholder="Search clubs and societies..." value={search} onChange={e => setSearch(e.target.value)}
             style={{ width: "100%", padding: "11px 14px 11px 40px", fontSize: 13, borderRadius: 10, border: "1.5px solid #E4E2DC", background: "white", color: "#1A1916", outline: "none", fontFamily: "'Inter', sans-serif" }} />
+        </div>
+          <label style={{
+            display: "flex", alignItems: "center", gap: 8, padding: "0 16px", background: mineOnly ? "#0B1D3A" : "white",
+            border: "1.5px solid #E4E2DC", borderRadius: 10, fontSize: 13, cursor: "pointer",
+            color: mineOnly ? "white" : "#6B6962", whiteSpace: "nowrap"
+          }}>
+            <input type="checkbox" checked={mineOnly} onChange={e => setMineOnly(e.target.checked)} />
+            My clubs only
+          </label>
         </div>
 
         <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
@@ -75,7 +89,7 @@ export default function ClubsPage() {
         ) : clubs.length === 0 ? (
           <div style={{ textAlign: "center", padding: "80px 0" }}>
             <p style={{ fontSize: 40, marginBottom: 12 }}>🏛️</p>
-            <p style={{ fontSize: 14, color: "#6B6962" }}>Nothing matches your search yet.</p>
+            <p style={{ fontSize: 14, color: "#6B6962" }}>{mineOnly ? "You haven't joined a club or society that matches yet." : "Nothing matches your search yet."}</p>
           </div>
         ) : (
           <>
@@ -97,6 +111,7 @@ export default function ClubsPage() {
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8, gap: 8 }}>
                         <h3 style={{ fontSize: 14, fontWeight: 600, color: "#0B1D3A", flex: 1 }}>{club.name}</h3>
                         <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-end" }}>
+                          {groups.clubIds.has(club.id) && <span style={{ fontSize: 10, padding: "2px 8px", borderRadius: 99, background: "#FFFBEB", color: "#92400E", fontWeight: 500 }}>Yours</span>}
                           <span style={{ fontSize: 10, padding: "2px 8px", borderRadius: 99, background: club.type === "SOCIETY" ? "#F5F3FF" : "#EFF6FF", color: club.type === "SOCIETY" ? "#6D28D9" : "#1D4ED8", fontWeight: 500 }}>
                             {club.type === "SOCIETY" ? "Society" : "Club"}
                           </span>
@@ -120,5 +135,13 @@ export default function ClubsPage() {
         )}
       </div>
     </MainLayout>
+  )
+}
+
+export default function ClubsPage() {
+  return (
+    <Suspense>
+      <ClubsContent />
+    </Suspense>
   )
 }

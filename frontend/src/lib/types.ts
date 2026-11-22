@@ -151,6 +151,7 @@ export interface Dashboard {
   articles: Article[]
   clubs: Club[]
   teams: Team[]
+  eventCount?: number
   pendingRequests?: number
   tickets?: number
 }

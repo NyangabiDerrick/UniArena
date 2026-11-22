@@ -1,13 +1,13 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { Suspense, useState, useEffect } from "react"
 import MainLayout from "@/components/layout/MainLayout"
 import { Search, Users } from "lucide-react"
 import Link from "next/link"
 import { api } from "@/lib/api"
 import { imageSrc } from "@/lib/groupImagesApi"
 import type { Team } from "@/lib/types"
-import { useMyGroups } from "@/lib/myGroups"
+import { useMyGroups, useMineFromUrl } from "@/lib/myGroups"
 
 type TeamCard = Team & { logoUrl?: string | null }
 
@@ -15,12 +15,13 @@ const sports = ["All", "Football", "Basketball", "Swimming", "Athletics", "Rugby
 
 const sportEmoji: Record<string, string> = { Football: "⚽", Basketball: "🏀", Swimming: "🏊", Athletics: "🏃", Rugby: "🏉", Tennis: "🎾", Cricket: "🏏", Volleyball: "🏐" }
 
-export default function SportsPage() {
+function SportsContent() {
   const groups = useMyGroups()
+  const mineFromUrl = useMineFromUrl()
   const [teams, setTeams] = useState<TeamCard[]>([])
   const [search, setSearch] = useState("")
   const [selected, setSelected] = useState("All")
-  const [mineOnly, setMineOnly] = useState(false)
+  const [mineOnly, setMineOnly] = useState(mineFromUrl)
 
   useEffect(() => {
     let cancelled = false
@@ -170,5 +171,13 @@ export default function SportsPage() {
 
       </div>
     </MainLayout>
+  )
+}
+
+export default function SportsPage() {
+  return (
+    <Suspense>
+      <SportsContent />
+    </Suspense>
   )
 }
