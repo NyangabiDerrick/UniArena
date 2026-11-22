@@ -4,18 +4,32 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useSession } from "next-auth/react"
 import MainLayout from "@/components/layout/MainLayout"
-import { Calendar, MapPin, Ticket as TicketIcon } from "lucide-react"
+import { Calendar, MapPin, Ticket as TicketIcon, Download } from "lucide-react"
 import { getMyTickets } from "@/lib/ticketsApi"
 import type { Ticket } from "@/lib/ticketTypes"
+import { downloadTicketPdf } from "@/lib/ticketPdf"
 
 const when = (d: string) =>
   new Date(d).toLocaleString("en-GB", { weekday: "short", day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })
 
 export default function MyTicketsPage() {
-  const { status } = useSession()
+  const { data: session, status } = useSession()
   const [tickets, setTickets] = useState<Ticket[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
+  const [downloading, setDownloading] = useState<string | null>(null)
+
+  const download = async (t: Ticket) => {
+    setDownloading(t.id)
+    setError("")
+    try {
+      await downloadTicketPdf(t, session?.user?.name)
+    } catch {
+      setError("Could not create the ticket PDF. Please try again.")
+    } finally {
+      setDownloading(null)
+    }
+  }
 
   useEffect(() => {
     if (status !== "authenticated") return
@@ -44,7 +58,7 @@ export default function MyTicketsPage() {
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             {tickets.map(t => (
-              <div key={t.id} style={{ background: "white", borderRadius: 14, border: "1px solid #E4E2DC", padding: "20px 24px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 20 }}>
+              <div key={t.id} style={{ background: "white", borderRadius: 14, border: "1px solid #E4E2DC", padding: "20px 24px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 20, flexWrap: "wrap" }}>
                 <div>
                   <Link href={`/events/${t.event.id}`} style={{ fontSize: 15, fontWeight: 600, color: "#0B1D3A", textDecoration: "none" }}>{t.event.title}</Link>
                   <p style={{ fontSize: 12, color: "#9CA3AF", marginTop: 8, display: "flex", gap: 16, flexWrap: "wrap" }}>
@@ -55,6 +69,10 @@ export default function MyTicketsPage() {
                 <div style={{ textAlign: "right", flexShrink: 0 }}>
                   <p style={{ fontSize: 11, color: "#9CA3AF", marginBottom: 4 }}>Ticket code</p>
                   <p style={{ fontFamily: "monospace", fontSize: 15, fontWeight: 700, color: "#0B1D3A", background: "#F8F7F4", padding: "6px 12px", borderRadius: 8 }}>{t.qrCode}</p>
+                  <button onClick={() => download(t)} disabled={downloading === t.id}
+                    style={{ marginTop: 10, display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 14px", borderRadius: 8, border: "1.5px solid #0B1D3A", background: "white", color: "#0B1D3A", fontSize: 12, fontWeight: 600, fontFamily: "'Inter', sans-serif", cursor: downloading === t.id ? "wait" : "pointer", opacity: downloading === t.id ? 0.6 : 1 }}>
+                    <Download size={13} /> {downloading === t.id ? "Preparing..." : "Download PDF"}
+                  </button>
                 </div>
               </div>
             ))}
