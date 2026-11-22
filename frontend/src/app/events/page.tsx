@@ -42,7 +42,7 @@ function EventsContent() {
   const [search, setSearch] = useState("")
   const [selected, setSelected] = useState("ALL")
   const [freeOnly, setFreeOnly] = useState(false)
-  const [mineOnly, setMineOnly] = useState(mineFromUrl)
+  const mineOnly = mineFromUrl
 
   useEffect(() => {
     let cancelled = false
@@ -93,14 +93,6 @@ function EventsContent() {
           }}>
             <input type="checkbox" checked={freeOnly} onChange={e => setFreeOnly(e.target.checked)} />
             Free only
-          </label>
-          <label style={{
-            display: "flex", alignItems: "center", gap: 8, padding: "0 16px", background: mineOnly ? "#0B1D3A" : "white",
-            border: "1.5px solid #E4E2DC", borderRadius: 10, fontSize: 13, cursor: "pointer",
-            color: mineOnly ? "white" : "#6B6962", whiteSpace: "nowrap"
-          }}>
-            <input type="checkbox" checked={mineOnly} onChange={e => setMineOnly(e.target.checked)} />
-            My groups only
           </label>
         </div>
 

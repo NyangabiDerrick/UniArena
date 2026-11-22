@@ -38,7 +38,7 @@ function NewsContent() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
   const [selected, setSelected] = useState("ALL")
-  const [mineOnly, setMineOnly] = useState(mineFromUrl)
+  const mineOnly = mineFromUrl
 
   useEffect(() => {
     let cancelled = false
@@ -118,14 +118,6 @@ function NewsContent() {
             <input type="text" placeholder="Search news and announcements..." value={search} onChange={e => setSearch(e.target.value)}
               style={{ width: "100%", padding: "11px 14px 11px 40px", fontSize: 13, borderRadius: 10, border: "1.5px solid #E4E2DC", background: "white", color: "#1A1916", outline: "none", fontFamily: "'Inter', sans-serif" }} />
           </div>
-          <label style={{
-            display: "flex", alignItems: "center", gap: 8, padding: "0 16px", background: mineOnly ? "#0B1D3A" : "white",
-            border: "1.5px solid #E4E2DC", borderRadius: 10, fontSize: 13, cursor: "pointer",
-            color: mineOnly ? "white" : "#6B6962", whiteSpace: "nowrap"
-          }}>
-            <input type="checkbox" checked={mineOnly} onChange={e => setMineOnly(e.target.checked)} />
-            My groups only
-          </label>
         </div>
 
         <div style={{ display: "flex", gap: 8, marginBottom: 28 }}>
