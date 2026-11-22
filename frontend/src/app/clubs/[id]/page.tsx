@@ -119,7 +119,7 @@ export default function ClubProfilePage({ params }: { params: Promise<{ id: stri
                   <span style={{ fontSize: 11, padding: "3px 10px", borderRadius: 99, background: club.type === "SOCIETY" ? "#F5F3FF" : "#EFF6FF", color: club.type === "SOCIETY" ? "#6D28D9" : "#1D4ED8", fontWeight: 500 }}>
                     {club.type === "SOCIETY" ? "Society" : "Club"}
                   </span>
-                  <span style={{ fontSize: 11, padding: "3px 10px", borderRadius: 99, background: "#F1F5F9", color: "#475569", fontWeight: 500 }}>{club.category}</span>
+                  {club.category && <span style={{ fontSize: 11, padding: "3px 10px", borderRadius: 99, background: "#F1F5F9", color: "#475569", fontWeight: 500 }}>{club.category}</span>}
                   <span style={{ display: "flex", alignItems: "center", gap: 4 }}><Users size={13} />{club._count?.memberships ?? 0} members</span>
                 </div>
               </div>

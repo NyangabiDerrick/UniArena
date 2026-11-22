@@ -11,8 +11,6 @@ import { useMyGroups, useMineFromUrl } from "@/lib/myGroups"
 
 type TeamCard = Team & { logoUrl?: string | null }
 
-const sports = ["All", "Football", "Basketball", "Swimming", "Athletics", "Rugby", "Tennis", "Cricket", "Volleyball"]
-
 const sportEmoji: Record<string, string> = { Football: "⚽", Basketball: "🏀", Swimming: "🏊", Athletics: "🏃", Rugby: "🏉", Tennis: "🎾", Cricket: "🏏", Volleyball: "🏐" }
 
 function SportsContent() {
@@ -20,18 +18,17 @@ function SportsContent() {
   const mineFromUrl = useMineFromUrl()
   const [teams, setTeams] = useState<TeamCard[]>([])
   const [search, setSearch] = useState("")
-  const [selected, setSelected] = useState("All")
   const mineOnly = mineFromUrl
 
   useEffect(() => {
     let cancelled = false
     const timer = setTimeout(() => {
-      api.getTeams({ sport: selected, search })
+      api.getTeams({ search })
         .then(res => { if (!cancelled) setTeams(res.data as TeamCard[]) })
         .catch(err => console.error("Failed to fetch teams:", err))
     }, 250)
     return () => { cancelled = true; clearTimeout(timer) }
-  }, [search, selected])
+  }, [search])
 
   const shown = teams.filter(t => !mineOnly || groups.teamIds.has(t.id))
 
@@ -65,19 +62,6 @@ function SportsContent() {
               }}
             />
           </div>
-        </div>
-
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 24 }}>
-          {sports.map(s => (
-            <button key={s} onClick={() => setSelected(s)} style={{
-              padding: "6px 14px", borderRadius: 99, fontSize: 12, fontWeight: 500,
-              border: "1.5px solid", cursor: "pointer",
-              borderColor: selected === s ? "#0B1D3A" : "#E4E2DC",
-              background: selected === s ? "#0B1D3A" : "white",
-              color: selected === s ? "white" : "#6B6962",
-              fontFamily: "'Inter', sans-serif"
-            }}>{s}</button>
-          ))}
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 20 }}>
@@ -154,7 +138,7 @@ function SportsContent() {
             <p style={{ fontSize: 14, color: "#6B6962" }}>
               {mineOnly ? "You aren't in a sports team yet." : "No teams found"}
             </p>
-            <button onClick={() => { setSearch(""); setSelected("All") }} style={{
+            <button onClick={() => { setSearch("") }} style={{
               marginTop: 12, fontSize: 13, color: "#0B1D3A",
               background: "none", border: "none", cursor: "pointer", textDecoration: "underline"
             }}>Clear filters</button>

@@ -58,7 +58,6 @@ export const createGroup = async (req: AuthRequest, res: Response) => {
     const season = orNull(req.body.season) ?? null
 
     if (kind === 'TEAM' && !sport) return sendError(res, 'Choose the sport for this team', 400)
-    if (kind !== 'TEAM' && !category) return sendError(res, 'Choose a category', 400)
 
     const leader = req.body.leaderId
       ? await prisma.user.findUnique({ where: { id: String(req.body.leaderId) } })
@@ -78,7 +77,7 @@ export const createGroup = async (req: AuthRequest, res: Response) => {
       } else {
         id = (await tx.club.create({
           data: {
-            name, description, category: category as string,
+            name, description, category: category || null,
             type: kind === 'SOCIETY' ? 'SOCIETY' : 'CLUB',
             status: 'ACTIVE'
           }
@@ -141,7 +140,7 @@ export const updateGroup = async (req: AuthRequest, res: Response) => {
           data: {
             name,
             description: orNull(b.description),
-            category: text(b.category),
+            category: orNull(b.category),
             type: b.type === 'SOCIETY' || b.type === 'CLUB' ? b.type : undefined
           }
         })
