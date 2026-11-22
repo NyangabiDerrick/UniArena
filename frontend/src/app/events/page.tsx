@@ -6,26 +6,32 @@ import { Search, Calendar, Clock, MapPin, Users } from "lucide-react"
 import Link from "next/link"
 import { api } from "@/lib/api"
 import type { Event } from "@/lib/types"
-import { categoryLabel, eventCategory, eventSold, formatEventDate, formatEventTime } from "@/lib/format"
+import { eventSold, formatEventDate, formatEventTime } from "@/lib/format"
 import { useMyGroups, useMineFromUrl } from "@/lib/myGroups"
 
 type EventWithOwner = Event & { clubId?: string | null; teamId?: string | null }
 
 const filters = [
   { label: "All", value: "ALL" },
-  { label: "Club", value: "CLUB" },
-  { label: "Sports", value: "SPORTS" },
-  { label: "University", value: "UNIVERSITY" },
-  { label: "Academic", value: "ACADEMIC" },
-  { label: "Social", value: "SOCIAL" }
+  { label: "Clubs", value: "CLUB" },
+  { label: "Societies", value: "SOCIETY" },
+  { label: "Sports", value: "SPORTS" }
 ]
+
+// Which kind of group runs the event; events with no group are university-wide
+const eventKind = (e: EventWithOwner) =>
+  e.team || e.teamId ? "SPORTS"
+  : e.club?.type === "SOCIETY" ? "SOCIETY"
+  : e.club || e.clubId ? "CLUB"
+  : "UNIVERSITY"
+
+const kindLabels: Record<string, string> = { CLUB: "Club", SOCIETY: "Society", SPORTS: "Sports", UNIVERSITY: "University" }
 
 const catColors: Record<string, { bg: string; text: string }> = {
   CLUB: { bg: "#EFF6FF", text: "#1D4ED8" },
+  SOCIETY: { bg: "#F5F3FF", text: "#6D28D9" },
   SPORTS: { bg: "#FFF7ED", text: "#C2410C" },
-  UNIVERSITY: { bg: "#F5F3FF", text: "#6D28D9" },
-  ACADEMIC: { bg: "#F0FDF4", text: "#15803D" },
-  SOCIAL: { bg: "#FDF2F8", text: "#A21CAF" }
+  UNIVERSITY: { bg: "#F0FDF4", text: "#15803D" }
 }
 
 const badge = (bg: string, text: string): React.CSSProperties => ({
@@ -66,7 +72,7 @@ function EventsContent() {
 
   const filtered = events
     .filter(e => !mineOnly || forMe(e))
-    .filter(e => selected === "ALL" || eventCategory(e) === selected)
+    .filter(e => selected === "ALL" || eventKind(e) === selected)
 
   return (
     <MainLayout>
@@ -121,7 +127,7 @@ function EventsContent() {
               const cancelled = statusOf(event) === "CANCELLED"
               const ended = !!event.endsAt && new Date(event.endsAt) < new Date()
               const unavailable = cancelled || ended || spotsLeft === 0 || !event.isFree
-              const key = eventCategory(event)
+              const key = eventKind(event)
               const cat = catColors[key] || { bg: "#F1F5F9", text: "#475569" }
               const mine = inMyGroups(event)
 
@@ -134,7 +140,7 @@ function EventsContent() {
                     <div style={{ display: "flex", justifyContent: "space-between", gap: 24 }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
-                          <span style={badge(cat.bg, cat.text)}>{categoryLabel(key)}</span>
+                          <span style={badge(cat.bg, cat.text)}>{kindLabels[key]}</span>
                           {mine && <span style={badge("#FFFBEB", "#92400E")}>Your group</span>}
                           {cancelled && <span style={badge("#FEF2F2", "#DC2626")}>Cancelled</span>}
                           {!cancelled && ended && <span style={badge("#F3F4F6", "#6B7280")}>Ended</span>}

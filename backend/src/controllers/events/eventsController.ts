@@ -30,7 +30,7 @@ export const getEvents = async (req: Request, res: Response) => {
         } : {})
       },
       include: {
-        club: { select: { name: true } },
+        club: { select: { name: true, type: true } },
         team: { select: { name: true } },
         creator: { select: { name: true } },
         _count: { select: { tickets: true } }
