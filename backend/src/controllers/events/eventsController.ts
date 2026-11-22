@@ -6,12 +6,16 @@ import { sendSuccess, sendError } from '../../utils/response'
 import { AuthRequest } from '../../middleware/auth'
 
 // What each kind of creator may choose. The form shows these, and the server enforces them.
-const allowedEventCategories = (role: string, hasClub: boolean, hasTeam: boolean): EventCategory[] => {
-  if (role === 'ADMIN') return ['SOCIAL', 'CLUB', 'SPORTS', 'UNIVERSITY', 'ACADEMIC']
-  if (hasTeam) return ['SPORTS', 'SOCIAL']
-  if (hasClub) return ['CLUB', 'SOCIAL', 'ACADEMIC']
+// Leaders can only post as their own kind of group; admins can post any of the four.
+const allowedEventCategories = (role: string, hasTeam: boolean, clubType: 'CLUB' | 'SOCIETY' | null): EventCategory[] => {
+  if (role === 'ADMIN') return ['CLUB', 'SOCIETY', 'SPORTS', 'UNIVERSITY']
+  if (hasTeam) return ['SPORTS']
+  if (clubType) return [clubType]
   return []
 }
+
+const clubTypeOf = async (clubId: string | null | undefined) =>
+  clubId ? (await prisma.club.findUnique({ where: { id: clubId }, select: { type: true } }))?.type ?? null : null
 
 // GET /api/events (public): published and cancelled events (suspended ones are hidden)
 export const getEvents = async (req: Request, res: Response) => {
@@ -47,7 +51,7 @@ export const getEvents = async (req: Request, res: Response) => {
 // GET /api/events/categories: the categories the signed-in person may use
 export const getEventCategories = async (req: AuthRequest, res: Response) => {
   const u = req.user!
-  return sendSuccess(res, allowedEventCategories(u.role, !!u.managedClubId, !!u.managedTeamId))
+  return sendSuccess(res, allowedEventCategories(u.role, !!u.managedTeamId, await clubTypeOf(u.managedClubId)))
 }
 
 // GET /api/events/:id (public)
@@ -95,7 +99,7 @@ export const createEvent = async (req: AuthRequest, res: Response) => {
       teamId = req.body.teamId || undefined
     }
 
-    const allowed = allowedEventCategories(u.role, !!clubId, !!teamId)
+    const allowed = allowedEventCategories(u.role, !!teamId, await clubTypeOf(clubId))
     if (!allowed.includes(category)) {
       return sendError(res, `You can't create a ${String(category).toLowerCase()} event. Allowed: ${allowed.join(', ')}`, 403)
     }

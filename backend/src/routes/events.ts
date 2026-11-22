@@ -33,7 +33,7 @@ router.post('/',
   managers,
   [
     body('title').trim().notEmpty().isLength({ max: 200 }),
-    body('category').isIn(['SOCIAL', 'CLUB', 'SPORTS', 'UNIVERSITY', 'ACADEMIC']),
+    body('category').isIn(['CLUB', 'SOCIETY', 'SPORTS', 'UNIVERSITY']),
     body('venue').trim().notEmpty().isLength({ max: 200 }),
     body('description').optional({ nullable: true }).isString().isLength({ max: 3000 }),
     body('startsAt').isISO8601(),

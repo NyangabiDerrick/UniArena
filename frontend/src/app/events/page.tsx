@@ -15,7 +15,8 @@ const filters = [
   { label: "All", value: "ALL" },
   { label: "Clubs", value: "CLUB" },
   { label: "Societies", value: "SOCIETY" },
-  { label: "Sports", value: "SPORTS" }
+  { label: "Sports", value: "SPORTS" },
+  { label: "University", value: "UNIVERSITY" }
 ]
 
 // Which kind of group runs the event; events with no group are university-wide
@@ -23,6 +24,7 @@ const eventKind = (e: EventWithOwner) =>
   e.team || e.teamId ? "SPORTS"
   : e.club?.type === "SOCIETY" ? "SOCIETY"
   : e.club || e.clubId ? "CLUB"
+  : e.category === "CLUB" || e.category === "SOCIETY" || e.category === "SPORTS" ? e.category
   : "UNIVERSITY"
 
 const kindLabels: Record<string, string> = { CLUB: "Club", SOCIETY: "Society", SPORTS: "Sports", UNIVERSITY: "University" }
