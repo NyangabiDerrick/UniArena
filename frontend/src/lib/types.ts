@@ -109,7 +109,7 @@ export interface Event {
   capacity?: number
   status?: string
   isFree?: boolean
-  club?: { id?: string; name: string } | null
+  club?: { id?: string; name: string; type?: string } | null
   team?: { id?: string; name: string } | null
   _count?: { tickets: number }
   category?: string
