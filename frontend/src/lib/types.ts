@@ -47,7 +47,7 @@ export interface Club {
   id: string
   name: string
   description?: string | null
-  category: string
+  category?: string | null
   type?: string
   logoUrl?: string | null
   bannerUrl?: string | null

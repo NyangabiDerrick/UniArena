@@ -22,7 +22,7 @@ router.put('/mine',
   [
     body('name').trim().isLength({ min: 2, max: 100 }).withMessage('The name must be 2 to 100 characters'),
     body('description').optional({ nullable: true }).isString().isLength({ max: 1000 }),
-    body('category').isIn(CLUB_CATEGORIES).withMessage('Choose a valid category'),
+    body('category').optional({ checkFalsy: true }).isIn(CLUB_CATEGORIES).withMessage('Choose a valid category'),
     body('type').isIn(['CLUB', 'SOCIETY'])
   ],
   validate,
@@ -37,7 +37,7 @@ router.post('/',
   [
     body('name').trim().notEmpty().isLength({ max: 100 }),
     body('description').trim().notEmpty().isLength({ max: 1000 }),
-    body('category').trim().notEmpty()
+    body('category').optional({ checkFalsy: true }).isIn(CLUB_CATEGORIES)
   ],
   validate,
   createClub

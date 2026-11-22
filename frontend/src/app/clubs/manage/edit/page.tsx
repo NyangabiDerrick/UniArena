@@ -20,7 +20,7 @@ export default function EditClubPage() {
   const permitted = role === "CLUB_LEADER"
 
   const [loaded, setLoaded] = useState(false)
-  const [form, setForm] = useState({ name: "", description: "", category: CLUB_CATEGORIES[0], type: "CLUB" as "CLUB" | "SOCIETY" })
+  const [form, setForm] = useState({ name: "", description: "", category: "", type: "CLUB" as "CLUB" | "SOCIETY" })
   const [saving, setSaving] = useState(false)
   const [notice, setNotice] = useState("")
   const [error, setError] = useState("")
@@ -35,7 +35,7 @@ export default function EditClubPage() {
         setForm({
           name: c.name,
           description: c.description ?? "",
-          category: c.category,
+          category: c.category ?? "",
           type: c.type === "SOCIETY" ? "SOCIETY" : "CLUB"
         })
         setLoaded(true)
@@ -53,7 +53,7 @@ export default function EditClubPage() {
       setNotice(await api.updateMyClub({
         name: form.name.trim(),
         description: form.description.trim(),
-        category: form.category,
+        category: form.category || null,
         type: form.type
       }).then(r => r.message))
     } catch (err) {
@@ -91,8 +91,9 @@ export default function EditClubPage() {
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
               <div>
-                <label style={lab}>Category</label>
+                <label style={lab}>Category (optional)</label>
                 <select value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} style={input}>
+                  <option value="">No category</option>
                   {CLUB_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>

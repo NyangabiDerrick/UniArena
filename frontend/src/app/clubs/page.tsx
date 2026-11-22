@@ -9,7 +9,6 @@ import { imageSrc } from "@/lib/groupImagesApi"
 import type { Club } from "@/lib/types"
 import { useMyGroups, useMineFromUrl } from "@/lib/myGroups"
 
-const categories = ["All", "Cultural", "Academic", "Arts", "Religious", "Sports", "Political", "Technology", "Social"]
 
 type View = "home" | "CLUB" | "SOCIETY" | "MINE"
 
@@ -17,38 +16,27 @@ function ClubsContent() {
   const groups = useMyGroups()
   const mineFromUrl = useMineFromUrl()
   const mineOnly = mineFromUrl
-  const [result, setResult] = useState<{ key: string; clubs: Club[] }>({ key: "", clubs: [] })
+  const [result, setResult] = useState<{ key: string; clubs: Club[]; failed?: boolean }>({ key: "", clubs: [] })
   const [search, setSearch] = useState("")
-  const [category, setCategory] = useState("All")
   const [view, setView] = useState<View>(mineOnly ? "MINE" : "home")
   const type = view === "CLUB" || view === "SOCIETY" ? view : ""
-  const showCategories = view === "CLUB" || view === "MINE"
 
-  const key = JSON.stringify([search, showCategories ? category : "All", type])
+  const key = JSON.stringify([search, type])
   const clubs = result.clubs.filter(c => !mineOnly || groups.clubIds.has(c.id))
   const loading = result.key !== key
 
   useEffect(() => {
-    const params: { search?: string; category?: string; type?: string } = {}
+    const params: { search?: string; type?: string } = {}
     if (search) params.search = search
-    if (showCategories && category !== "All") params.category = category
     if (type) params.type = type
 
     api.getClubs(params)
       .then(res => setResult({ key, clubs: res.data }))
       .catch(err => {
         console.error("Failed to fetch clubs:", err)
-        setResult({ key, clubs: [] })
+        setResult({ key, clubs: [], failed: true })
       })
-  }, [search, category, type, showCategories, key])
-
-  const pill = (active: boolean): React.CSSProperties => ({
-    padding: "6px 14px", borderRadius: 99, fontSize: 12, fontWeight: 500,
-    border: "1.5px solid", cursor: "pointer", fontFamily: "'Inter', sans-serif",
-    borderColor: active ? "#0B1D3A" : "#E4E2DC",
-    background: active ? "#0B1D3A" : "white",
-    color: active ? "white" : "#6B6962"
-  })
+  }, [search, type, key])
 
   return (
     <MainLayout>
@@ -63,15 +51,15 @@ function ClubsContent() {
         {view === "home" ? (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 20, marginBottom: 32 }}>
             {([
-              { v: "CLUB" as View, title: "Clubs", text: "Browse every club, filtered by category", Icon: Building2, n: result.clubs.filter(c => c.type === "CLUB").length },
+              { v: "CLUB" as View, title: "Clubs", text: "Browse every club", Icon: Building2, n: result.clubs.filter(c => c.type === "CLUB").length },
               { v: "SOCIETY" as View, title: "Societies", text: "See all the university societies", Icon: Landmark, n: result.clubs.filter(c => c.type === "SOCIETY").length }
             ]).map(({ v, title, text, Icon, n }) => (
-              <button key={v} onClick={() => { setView(v); setSearch(""); setCategory("All") }}
+              <button key={v} onClick={() => { setView(v); setSearch("") }}
                 style={{ textAlign: "left", background: "white", border: "1px solid #E4E2DC", borderRadius: 14, padding: 28, cursor: "pointer", fontFamily: "'Inter', sans-serif" }}>
                 <Icon size={28} color="#1D4ED8" style={{ marginBottom: 14 }} />
                 <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, color: "#0B1D3A", marginBottom: 6 }}>{title}</h2>
                 <p style={{ fontSize: 13, color: "#6B6962", marginBottom: 14 }}>{text}</p>
-                <span style={{ fontSize: 12, fontWeight: 500, color: "#0B1D3A" }}>{loading ? "" : `${n} · `}View →</span>
+                <span style={{ fontSize: 12, fontWeight: 500, color: "#0B1D3A" }}>{loading ? "" : result.failed ? "Couldn't load" : n === 0 ? "None yet" : `${n} ${n === 1 ? "group" : "groups"} · View →`}</span>
               </button>
             ))}
           </div>
@@ -87,11 +75,6 @@ function ClubsContent() {
               <input type="text" placeholder={view === "SOCIETY" ? "Search societies..." : view === "CLUB" ? "Search clubs..." : "Search your groups..."} value={search} onChange={e => setSearch(e.target.value)}
                 style={{ width: "100%", padding: "11px 14px 11px 40px", fontSize: 13, borderRadius: 10, border: "1.5px solid #E4E2DC", background: "white", color: "#1A1916", outline: "none", fontFamily: "'Inter', sans-serif" }} />
             </div>
-            {showCategories && (
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 24 }}>
-                {categories.map(c => <button key={c} onClick={() => setCategory(c)} style={pill(category === c)}>{c}</button>)}
-              </div>
-            )}
           </>
         )}
 
@@ -126,7 +109,7 @@ function ClubsContent() {
                           <span style={{ fontSize: 10, padding: "2px 8px", borderRadius: 99, background: club.type === "SOCIETY" ? "#F5F3FF" : "#EFF6FF", color: club.type === "SOCIETY" ? "#6D28D9" : "#1D4ED8", fontWeight: 500 }}>
                             {club.type === "SOCIETY" ? "Society" : "Club"}
                           </span>
-                          <span style={{ fontSize: 10, padding: "2px 8px", borderRadius: 99, background: "#F1F5F9", color: "#475569", fontWeight: 500 }}>{club.category}</span>
+                          {club.category && <span style={{ fontSize: 10, padding: "2px 8px", borderRadius: 99, background: "#F1F5F9", color: "#475569", fontWeight: 500 }}>{club.category}</span>}
                         </div>
                       </div>
                       <p style={{ fontSize: 12, color: "#6B6962", lineHeight: 1.6, flex: 1, marginBottom: 16 }}>{club.description}</p>
