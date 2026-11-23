@@ -1,4 +1,4 @@
-import { getSession } from "next-auth/react"
+import { getSession } from "./session"
 import type { ReportReasonValue } from "@/components/layout/ReportDialog"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
