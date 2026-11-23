@@ -2,7 +2,7 @@ import { Response } from 'express'
 import { Prisma } from '@prisma/client'
 import { prisma } from '../../config/prisma'
 import { sendSuccess, sendError } from '../../utils/response'
-import { AuthRequest } from '../../middleware/auth'
+import { AuthRequest, clearUserCache } from '../../middleware/auth'
 
 const who = { id: true, name: true, studentId: true, role: true, isActive: true } as const
 
@@ -160,6 +160,7 @@ export const decideReport = async (req: AuthRequest, res: Response) => {
     }))
 
     await prisma.$transaction(ops)
+    clearUserCache()
     return sendSuccess(res, null, label)
   } catch (error) {
     return sendError(res, 'Failed to update report', 500, error)

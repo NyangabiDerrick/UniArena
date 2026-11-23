@@ -1,7 +1,7 @@
 import { Response } from 'express'
 import { prisma } from '../../config/prisma'
 import { sendSuccess, sendError } from '../../utils/response'
-import { AuthRequest } from '../../middleware/auth'
+import { AuthRequest, clearUserCache } from '../../middleware/auth'
 
 // GET /api/admin/appeals?status=OPEN|APPROVED|REJECTED
 export const listAppeals = async (req: AuthRequest, res: Response) => {
@@ -94,6 +94,7 @@ export const decideAppeal = async (req: AuthRequest, res: Response) => {
         : [])
     ])
 
+    clearUserCache()
     return sendSuccess(res, null, label)
   } catch (error) {
     return sendError(res, 'Failed to update appeal', 500, error)

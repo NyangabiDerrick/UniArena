@@ -2,7 +2,7 @@ import { Response } from 'express'
 import { Prisma } from '@prisma/client'
 import { prisma } from '../../config/prisma'
 import { sendSuccess, sendError } from '../../utils/response'
-import { AuthRequest } from '../../middleware/auth'
+import { AuthRequest, clearUserCache } from '../../middleware/auth'
 
 const leaderSelect = { id: true, name: true, studentId: true } as const
 
@@ -117,6 +117,7 @@ export const createGroup = async (req: AuthRequest, res: Response) => {
       return id
     })
 
+    clearUserCache()
     return sendSuccess(res, { id: groupId }, `${name} was created`, 201)
   } catch (error) {
     return failure(res, error, 'Failed to create the group')

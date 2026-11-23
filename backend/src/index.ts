@@ -4,7 +4,10 @@ import helmet from 'helmet'
 import morgan from 'morgan'
 import cookieParser from 'cookie-parser'
 import dotenv from 'dotenv'
+import crypto from 'crypto'
 import { errorHandler, notFound } from './middleware/errorHandler'
+import { checkEnv } from './config/env'
+import { prisma } from './config/prisma'
 import { generalLimiter, identifyForLimits, userLimiter } from './middleware/rateLimiter'
 import { verifiedOnly } from './middleware/verified'
 import { UPLOAD_ROOT } from './utils/storage'
@@ -25,6 +28,16 @@ import commentRoutes from './routes/comments'
 import countsRoutes from './routes/counts'
 
 dotenv.config()
+
+const report = checkEnv()
+report.warnings.forEach(w => console.warn(`[config] ${w}`))
+if (report.errors.length) {
+  report.errors.forEach(e => console.error(`[config] ${e}`))
+  if (process.env.NODE_ENV === 'production') {
+    console.error('Refusing to start with an unsafe or incomplete configuration.')
+    process.exit(1)
+  }
+}
 
 const app = express()
 const PORT = process.env.PORT || 5000
@@ -47,7 +60,7 @@ app.use('/uploads', (_req, res, next) => {
 app.use(cors({
   origin: (origin, callback) => {
     const allowed = [
-      'http://localhost:3000',
+      ...(process.env.NODE_ENV === 'production' ? [] : ['http://localhost:3000']),
       process.env.FRONTEND_URL
     ].filter(Boolean)
 
@@ -63,22 +76,53 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }))
 
+// Every request gets an id, so one failure can be followed through the logs
+app.use((req, res, next) => {
+  const id = String(req.headers['x-request-id'] || '').slice(0, 64) || crypto.randomUUID()
+  ;(req as express.Request & { id?: string }).id = id
+  res.setHeader('X-Request-Id', id)
+  next()
+})
+morgan.token('id', req => (req as express.Request & { id?: string }).id || '-')
+app.use(process.env.NODE_ENV === 'production'
+  ? morgan((tokens, req, res) => JSON.stringify({
+      level: 'info', id: tokens.id(req, res), method: tokens.method(req, res),
+      path: tokens.url(req, res)?.split('?')[0], status: Number(tokens.status(req, res)),
+      ms: Number(tokens['response-time'](req, res)), ip: req.socket.remoteAddress
+    }), { skip: req => req.url === '/health' || req.url === '/health/ready' })
+  : morgan('dev'))
+
 app.use(generalLimiter)
 app.use(identifyForLimits)
 app.use(userLimiter)
-app.use(morgan('dev'))
-app.use(express.json())
-app.use(express.urlencoded({ extended: true }))
+app.use(express.json({ limit: '100kb' }))
+app.use(express.urlencoded({ extended: true, limit: '100kb' }))
 app.use(cookieParser())
 
-// Health check
-app.get('/health', (req, res) => {
-  res.json({
-    success: true,
-    message: 'UniArena API is running',
-    timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV
-  })
+// Public lists and pages can be kept for a short time by browsers and the CDN.
+// Anything for a signed-in person (an Authorization header) is never stored by a shared cache.
+const PUBLIC_READS = /^\/api\/(clubs|sports|events|articles)(\/(?!mine|categories|managed|tickets)[^/]+)?$/
+app.use((req, res, next) => {
+  if (req.method === 'GET' && PUBLIC_READS.test(req.path)) {
+    res.setHeader('Vary', 'Authorization')
+    res.setHeader('Cache-Control', req.headers.authorization ? 'private, no-store' : 'public, max-age=30, stale-while-revalidate=120')
+  }
+  next()
+})
+
+// Is the process up? Used for simple uptime checks. Reveals nothing about the setup.
+app.get('/health', (_req, res) => {
+  res.json({ success: true, message: 'UniArena API is running' })
+})
+
+// Can it actually serve people? Checks the database. Point the host's health check here.
+app.get('/health/ready', async (_req, res) => {
+  try {
+    await prisma.$queryRaw`SELECT 1`
+    res.json({ success: true, message: 'Ready' })
+  } catch {
+    res.status(503).json({ success: false, message: 'Database unavailable' })
+  }
 })
 
 // Students must confirm their email before these three actions
@@ -107,9 +151,30 @@ app.use('/api', commentRoutes)
 app.use(notFound)
 app.use(errorHandler)
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`🚀 UniArena backend running on http://localhost:${PORT}`)
   console.log(`🌍 Environment: ${process.env.NODE_ENV}`)
+})
+
+// Deploys and restarts: stop taking new requests, let current ones finish, then close the database
+let stopping = false
+const shutdown = (signal: string) => {
+  if (stopping) return
+  stopping = true
+  console.log(`${signal} received: shutting down`)
+  const force = setTimeout(() => process.exit(1), 10_000)
+  force.unref()
+  server.close(async () => {
+    await prisma.$disconnect().catch(() => {})
+    process.exit(0)
+  })
+}
+process.on('SIGTERM', () => shutdown('SIGTERM'))
+process.on('SIGINT', () => shutdown('SIGINT'))
+process.on('unhandledRejection', reason => console.error(JSON.stringify({ level: 'error', message: 'Unhandled rejection', reason: String(reason) })))
+process.on('uncaughtException', error => {
+  console.error(JSON.stringify({ level: 'error', message: 'Uncaught exception', error: error.message, stack: error.stack }))
+  shutdown('uncaughtException')
 })
 
 export default app
