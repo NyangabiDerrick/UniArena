@@ -3,11 +3,11 @@ import { getSession } from "next-auth/react"
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
 
 export type EventCategory = "CLUB" | "SOCIETY" | "SPORTS" | "UNIVERSITY"
-export type ArticleCategory = "CLUB" | "SPORTS" | "UNIVERSITY"
+export type ArticleCategory = "CLUB" | "SOCIETY" | "SPORTS" | "UNIVERSITY"
 
 export const CATEGORY_LABELS: Record<string, string> = {
-  CLUB: "Club",
-  SOCIETY: "Society",
+  CLUB: "Clubs",
+  SOCIETY: "Societies",
   SPORTS: "Sports",
   UNIVERSITY: "University",
   SOCIAL: "Social",

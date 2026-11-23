@@ -13,7 +13,8 @@ type ArticleWithOwner = Article & { clubId?: string | null; teamId?: string | nu
 
 const filters = [
   { label: "All", value: "ALL" },
-  { label: "Club", value: "CLUB" },
+  { label: "Clubs", value: "CLUB" },
+  { label: "Societies", value: "SOCIETY" },
   { label: "Sports", value: "SPORTS" },
   { label: "University", value: "UNIVERSITY" }
 ]
@@ -21,6 +22,7 @@ const filters = [
 const catColors: Record<string, { bg: string; text: string }> = {
   SPORTS: { bg: "#FFF7ED", text: "#C2410C" },
   CLUB: { bg: "#EFF6FF", text: "#1D4ED8" },
+  SOCIETY: { bg: "#F5F3FF", text: "#6D28D9" },
   UNIVERSITY: { bg: "#F5F3FF", text: "#6D28D9" }
 }
 

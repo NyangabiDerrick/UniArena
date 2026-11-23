@@ -32,7 +32,7 @@ router.post('/',
   managers,
   [
     body('title').trim().notEmpty().isLength({ max: 200 }),
-    body('category').isIn(['CLUB', 'SPORTS', 'UNIVERSITY']),
+    body('category').isIn(['CLUB', 'SOCIETY', 'SPORTS', 'UNIVERSITY']),
     body('content').trim().isLength({ min: 20, max: 20000 }).withMessage('The article must be at least 20 characters'),
     body('tags').optional({ nullable: true }).isArray({ max: 8 })
   ],

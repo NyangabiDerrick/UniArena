@@ -5,19 +5,22 @@ import { sendSuccess, sendError } from '../../utils/response'
 import { AuthRequest } from '../../middleware/auth'
 
 // What each kind of creator may choose. The form shows these, and the server enforces them.
-const allowedArticleCategories = (role: string, hasClub: boolean, hasTeam: boolean): ArticleCategory[] => {
-  if (role === 'ADMIN') return ['CLUB', 'SPORTS', 'UNIVERSITY']
+const allowedArticleCategories = (role: string, hasTeam: boolean, clubType: 'CLUB' | 'SOCIETY' | null): ArticleCategory[] => {
+  if (role === 'ADMIN') return ['CLUB', 'SOCIETY', 'SPORTS', 'UNIVERSITY']
   if (hasTeam) return ['SPORTS']
-  if (hasClub) return ['CLUB']
+  if (clubType) return [clubType]
   return []
 }
+
+const clubTypeOf = async (clubId: string | null | undefined) =>
+  clubId ? (await prisma.club.findUnique({ where: { id: clubId }, select: { type: true } }))?.type ?? null : null
 
 // GET /api/articles (public): published articles, pinned first
 export const getArticles = async (req: Request, res: Response) => {
   try {
     const { search, category } = req.query
     const categoryFilter =
-      category === 'CLUB' || category === 'SPORTS' || category === 'UNIVERSITY'
+      category === 'CLUB' || category === 'SOCIETY' || category === 'SPORTS' || category === 'UNIVERSITY'
         ? { category: category as ArticleCategory }
         : {}
 
@@ -34,7 +37,7 @@ export const getArticles = async (req: Request, res: Response) => {
       },
       include: {
         author: { select: { name: true } },
-        club: { select: { name: true } },
+        club: { select: { name: true, type: true } },
         team: { select: { name: true } }
       },
       orderBy: [{ isPinned: 'desc' }, { createdAt: 'desc' }]
@@ -49,7 +52,7 @@ export const getArticles = async (req: Request, res: Response) => {
 // GET /api/articles/categories: the categories the signed-in person may use
 export const getArticleCategories = async (req: AuthRequest, res: Response) => {
   const u = req.user!
-  return sendSuccess(res, allowedArticleCategories(u.role, !!u.managedClubId, !!u.managedTeamId))
+  return sendSuccess(res, allowedArticleCategories(u.role, !!u.managedTeamId, await clubTypeOf(u.managedClubId)))
 }
 
 // GET /api/articles/:id (public): one published article with its visible comments
@@ -97,7 +100,7 @@ export const createArticle = async (req: AuthRequest, res: Response) => {
       teamId = req.body.teamId || undefined
     }
 
-    const allowed = allowedArticleCategories(u.role, !!clubId, !!teamId)
+    const allowed = allowedArticleCategories(u.role, !!teamId, await clubTypeOf(clubId))
     if (!allowed.includes(category)) {
       return sendError(res, `You can't post ${String(category).toLowerCase()} news. Allowed: ${allowed.join(', ')}`, 403)
     }
