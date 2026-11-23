@@ -30,6 +30,8 @@ model User {
   resetTokenExpiry DateTime?
   verifyToken       String?
   verifyTokenExpiry DateTime?
+  // Sign-ins that began before this moment are ended (set when the password is reset)
+  passwordChangedAt DateTime?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   blocksMade      UserBlock[]     @relation("Blocker")
@@ -94,6 +96,8 @@ model ClubMembership {
   club Club @relation(fields: [clubId], references: [id])
 
   @@unique([userId, clubId])
+
+  @@index([clubId, status])
 }
 
 model ClubCommittee {
@@ -194,6 +198,10 @@ model Event {
   team    SportsTeam? @relation(fields: [teamId], references: [id])
   creator User        @relation(fields: [createdBy], references: [id])
   tickets Ticket[]
+
+  @@index([status, startsAt])
+  @@index([clubId])
+  @@index([teamId])
 }
 
 model Ticket {
@@ -209,6 +217,10 @@ model Ticket {
 
   event Event @relation(fields: [eventId], references: [id])
   user  User  @relation(fields: [userId], references: [id])
+
+  @@index([eventId])
+  @@index([userId])
+  @@unique([eventId, userId])
 }
 
 model Article {
@@ -233,6 +245,10 @@ model Article {
   club     Club?       @relation(fields: [clubId], references: [id])
   team     SportsTeam? @relation(fields: [teamId], references: [id])
   comments Comment[]
+
+  @@index([status, createdAt])
+  @@index([clubId])
+  @@index([teamId])
 }
 
 model Comment {
@@ -245,6 +261,8 @@ model Comment {
 
   article Article @relation(fields: [articleId], references: [id])
   user    User    @relation(fields: [userId], references: [id])
+
+  @@index([articleId, createdAt])
 }
 
 model Gallery {
@@ -285,6 +303,8 @@ model Notification {
   createdAt DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, isRead, createdAt])
 }
 
 model Message {
@@ -297,6 +317,9 @@ model Message {
 
   sender   User @relation("SentMessages", fields: [senderId], references: [id])
   receiver User @relation("ReceivedMessages", fields: [receiverId], references: [id])
+
+  @@index([senderId, receiverId, sentAt])
+  @@index([receiverId, isRead])
 }
 
 model DiscussionBoard {
@@ -322,6 +345,8 @@ model AuditLog {
   createdAt  DateTime @default(now())
 
   admin User @relation(fields: [adminId], references: [id])
+
+  @@index([createdAt])
 }
 
 enum Role {
