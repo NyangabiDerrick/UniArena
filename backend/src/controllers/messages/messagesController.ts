@@ -34,37 +34,41 @@ const blockedByMe = async (me: string) =>
     .map(b => b.blockedId)
 
 // GET /api/messages/conversations: one entry per person (people you blocked are hidden)
+// The database picks the latest message per person, so a long inbox does not have to be loaded and sorted here.
 export const getConversations = async (req: AuthRequest, res: Response) => {
   try {
     const me = req.user!.id
     const hidden = new Set(await blockedByMe(me))
 
-    const messages = await prisma.message.findMany({
-      where: { OR: [{ senderId: me }, { receiverId: me }] },
-      orderBy: { sentAt: 'desc' },
-      take: 500,
-      include: { sender: { select: person }, receiver: { select: person } }
+    const [latest, unreadRows] = await Promise.all([
+      prisma.$queryRaw<{ partner: string; content: string; sentAt: Date }[]>`
+        SELECT DISTINCT ON (partner) partner, content, "sentAt"
+        FROM (
+          SELECT CASE WHEN "senderId" = ${me} THEN "receiverId" ELSE "senderId" END AS partner, content, "sentAt"
+          FROM "Message"
+          WHERE "senderId" = ${me} OR "receiverId" = ${me}
+        ) m
+        ORDER BY partner, "sentAt" DESC`,
+      prisma.message.groupBy({ by: ['senderId'], where: { receiverId: me, isRead: false }, _count: { _all: true } })
+    ])
+
+    const visible = latest
+      .filter(row => !hidden.has(row.partner))
+      .sort((x, y) => y.sentAt.getTime() - x.sentAt.getTime())
+      .slice(0, 100)
+
+    const people = await prisma.user.findMany({ where: { id: { in: visible.map(v => v.partner) } }, select: person })
+    const byId = new Map(people.map(p => [p.id, p]))
+    const unread = new Map(unreadRows.map(r => [r.senderId, r._count._all]))
+
+    const conversations = visible.flatMap(row => {
+      const other = byId.get(row.partner)
+      return other
+        ? [{ partner: toPartner(other), lastMessage: row.content, lastAt: row.sentAt, unread: unread.get(row.partner) ?? 0 }]
+        : []
     })
 
-    const byPerson = new Map<string, {
-      partner: ReturnType<typeof toPartner>
-      lastMessage: string
-      lastAt: Date
-      unread: number
-    }>()
-
-    for (const m of messages) {
-      const other = m.senderId === me ? m.receiver : m.sender
-      if (hidden.has(other.id)) continue
-      let entry = byPerson.get(other.id)
-      if (!entry) {
-        entry = { partner: toPartner(other), lastMessage: m.content, lastAt: m.sentAt, unread: 0 }
-        byPerson.set(other.id, entry)
-      }
-      if (m.receiverId === me && !m.isRead) entry.unread++
-    }
-
-    return sendSuccess(res, Array.from(byPerson.values()))
+    return sendSuccess(res, conversations)
   } catch (error) {
     return sendError(res, 'Failed to fetch conversations', 500, error)
   }
