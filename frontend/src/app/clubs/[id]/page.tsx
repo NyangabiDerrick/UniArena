@@ -204,7 +204,7 @@ export default function ClubProfilePage({ params }: { params: Promise<{ id: stri
                     </div>
                   ))}
                 </div>
-              ) : <p style={{ fontSize: 14, color: "#6B6962" }}>No members yet.</p>}
+              ) : <p style={{ fontSize: 14, color: "#6B6962" }}>{club.namesHidden ? "Sign in to see the members." : "No members yet."}</p>}
             </div>
           )}
 
@@ -225,7 +225,7 @@ export default function ClubProfilePage({ params }: { params: Promise<{ id: stri
                     </div>
                   ))}
                 </div>
-              ) : <p style={{ fontSize: 14, color: "#6B6962" }}>No committee assigned yet.</p>}
+              ) : <p style={{ fontSize: 14, color: "#6B6962" }}>{club.namesHidden ? "Sign in to see the committee." : "No committee assigned yet."}</p>}
             </div>
           )}
 
