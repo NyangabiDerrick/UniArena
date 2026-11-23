@@ -468,6 +468,7 @@ enum EventCategory {
 
 enum ArticleCategory {
   CLUB
+  SOCIETY
   SPORTS
   UNIVERSITY
 }

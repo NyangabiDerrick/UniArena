@@ -19,12 +19,13 @@ export const eventCategory = (e: Event): string => {
   return "UNIVERSITY"
 }
 
-// Returns CLUB, SPORTS or UNIVERSITY
+// Returns CLUB, SOCIETY, SPORTS or UNIVERSITY
 export const articleCategory = (a: Article): string => {
+  if (a.club?.type === "SOCIETY") return "SOCIETY"
   const stored = (a as WithCategory).category
   if (stored) return stored.toUpperCase()
   if (a.team) return "SPORTS"
-  if (a.club) return "CLUB"
+  if (a.club) return a.club.type === "SOCIETY" ? "SOCIETY" : "CLUB"
   return "UNIVERSITY"
 }
 

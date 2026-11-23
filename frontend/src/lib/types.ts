@@ -132,7 +132,7 @@ export interface Article {
   coverImageUrl?: string | null
   createdAt: string
   author?: UserSummary
-  club?: { id?: string; name: string } | null
+  club?: { id?: string; name: string; type?: string } | null
   team?: { id?: string; name: string } | null
 }
 
