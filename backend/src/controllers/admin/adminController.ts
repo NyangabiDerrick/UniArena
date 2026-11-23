@@ -1,13 +1,16 @@
 import { Request, Response } from 'express'
 import { prisma } from '../../config/prisma'
 import { sendSuccess, sendError } from '../../utils/response'
-import { AuthRequest } from '../../middleware/auth'
-const hideSecrets = { passwordHash: true, resetToken: true, resetTokenExpiry: true } as const
+import { AuthRequest, clearUserCache } from '../../middleware/auth'
+const hideSecrets = { passwordHash: true, resetToken: true, resetTokenExpiry: true, verifyToken: true, verifyTokenExpiry: true } as const
 
 // GET /api/admin/users
-export const getUsers = async (req: Request, res: Response) => {
+export const getUsers = async (req: AuthRequest, res: Response) => {
   try {
     const { role, search } = req.query
+    const isAdmin = req.user!.role === 'ADMIN'
+    const limit = Math.min(Math.max(parseInt(String(req.query.limit ?? '50'), 10) || 50, 1), 500)
+    const page = Math.max(parseInt(String(req.query.page ?? '1'), 10) || 1, 1)
 
     const users = await prisma.user.findMany({
       where: {
@@ -24,10 +27,20 @@ export const getUsers = async (req: Request, res: Response) => {
         managedClub: { select: { id: true, name: true } },
         managedTeam: { select: { id: true, name: true } }
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+      skip: (page - 1) * limit
     })
 
-    return sendSuccess(res, users)
+    // Searching for people is recorded, because it shows personal details
+    if (search) {
+      await prisma.auditLog.create({
+        data: { adminId: req.user!.id, action: 'Searched users', targetType: 'User', targetId: 'search', details: `"${String(search).slice(0, 60)}"` }
+      })
+    }
+
+    // Moderators need names and accounts to do their job, not registration numbers
+    return sendSuccess(res, isAdmin ? users : users.map(u => ({ ...u, studentId: '' })))
   } catch (error) {
     return sendError(res, 'Failed to fetch users', 500, error)
   }
@@ -56,6 +69,7 @@ export const updateUser = async (req: AuthRequest, res: Response) => {
       }
     })
 
+    clearUserCache()
     return sendSuccess(res, user, isActive ? 'Account reactivated' : 'Account suspended')
   } catch (error) {
     return sendError(res, 'Failed to update user', 500, error)
@@ -112,6 +126,7 @@ export const assignLeader = async (req: AuthRequest, res: Response) => {
       }
     })
 
+    clearUserCache()
     return sendSuccess(res, user, detail)
   } catch (error) {
     return sendError(res, 'Failed to assign leader', 500, error)

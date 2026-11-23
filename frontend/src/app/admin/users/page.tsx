@@ -27,14 +27,15 @@ export default function UsersPage() {
   const [choice, setChoice] = useState("")
 
   const [reloadKey, setReloadKey] = useState(0)
+  const [shown, setShown] = useState(50)
 
   useEffect(() => {
     if (status !== "authenticated") return
-    api.getAdminUsers({ role: roleFilter, search })
+    api.getAdminUsers({ role: roleFilter, search, limit: shown })
       .then(res => setUsers(res.data))
       .catch(err => setError(errorMessage(err)))
       .finally(() => setLoading(false))
-  }, [status, roleFilter, search, reloadKey])
+  }, [status, roleFilter, search, reloadKey, shown])
 
   useEffect(() => {
     if (status !== "authenticated") return
@@ -157,6 +158,9 @@ export default function UsersPage() {
         )}
         <div style={{ padding: "12px 16px", borderTop: "1px solid #E4E2DC", fontSize: 12, color: "#9CA3AF" }}>
           {users.length} user{users.length !== 1 ? "s" : ""}
+          {users.length >= shown && (
+            <button onClick={() => setShown(n => n + 50)} style={{ marginLeft: 12, fontSize: 12, fontWeight: 500, color: "#0B1D3A", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}>Load 50 more</button>
+          )}
         </div>
       </div>
 
