@@ -40,13 +40,13 @@ function ResetForm() {
   }
 
   return (
-    <AuthShell title="Choose a new password" subtitle="Pick a password of at least 8 characters">
+    <AuthShell title="Choose a new password" subtitle="Pick a password of at least 10 characters">
       {!token && <div style={errorBox}>This link is incomplete. Open the full link from your reset email, or request a new one.</div>}
       {error && <div style={errorBox}>{error}</div>}
       <form onSubmit={submit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         <div>
           <label htmlFor="password" style={labelStyle}>New password</label>
-          <PasswordInput id="password" value={password} onChange={setPassword} minLength={8} autoComplete="new-password" />
+          <PasswordInput id="password" value={password} onChange={setPassword} minLength={10} autoComplete="new-password" />
         </div>
         <div>
           <label htmlFor="confirm" style={labelStyle}>Confirm new password</label>

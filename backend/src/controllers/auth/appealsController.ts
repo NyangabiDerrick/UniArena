@@ -5,6 +5,9 @@ import { sendSuccess, sendError } from '../../utils/response'
 
 const COOLDOWN_DAYS = 7
 
+// Compared against when the email is unknown, so a wrong password takes the same time either way
+const DUMMY_HASH = bcrypt.hashSync('not-a-real-password', 12)
+
 // POST /api/appeals { email, password, message }
 // Public, because a suspended person cannot sign in. The password proves the account is theirs.
 export const submitAppeal = async (req: Request, res: Response) => {
@@ -13,8 +16,8 @@ export const submitAppeal = async (req: Request, res: Response) => {
     const message = String(req.body.message).trim()
 
     const user = await prisma.user.findUnique({ where: { email } })
-    const valid = user?.passwordHash && (await bcrypt.compare(String(req.body.password), user.passwordHash))
-    if (!user || !valid) return sendError(res, 'Invalid email or password', 401)
+    const matches = await bcrypt.compare(String(req.body.password), user?.passwordHash ?? DUMMY_HASH)
+    if (!user || !user.passwordHash || !matches) return sendError(res, 'Invalid email or password', 401)
 
     if (user.isActive) {
       return sendError(res, 'Your account is not suspended. You can sign in normally.', 400)
