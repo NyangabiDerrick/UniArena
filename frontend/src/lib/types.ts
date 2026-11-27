@@ -57,6 +57,8 @@ export interface Club {
   _count?: { memberships: number }
   events?: Event[]
   memberships?: Membership[]
+  // True when the visitor is signed out: member and committee names are left out
+  namesHidden?: boolean
   committees?: Committee[]
   upcomingEvents?: number
 }
@@ -92,6 +94,7 @@ export interface Team {
   season?: string | null
   fixtures?: Fixture[]
   squadMembers?: SquadMember[]
+  namesHidden?: boolean
   _count?: { squadMembers?: number }
   wins?: number
   losses?: number

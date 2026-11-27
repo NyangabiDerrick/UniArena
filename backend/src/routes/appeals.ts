@@ -1,21 +1,13 @@
 import { Router } from 'express'
 import { body } from 'express-validator'
-import rateLimit from 'express-rate-limit'
+import { appealLimiters } from '../middleware/rateLimiter'
 import { submitAppeal } from '../controllers/auth/appealsController'
 import { validate } from '../middleware/validate'
 
 const router = Router()
 
-// This endpoint checks a password, so guessing is limited per email address
-const appealLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 5,
-  keyGenerator: req => String(req.body?.email || 'unknown').toLowerCase(),
-  message: { success: false, message: 'Too many attempts for this account. Please try again later.' }
-})
-
 router.post('/',
-  appealLimiter,
+  ...appealLimiters,
   [
     body('email').isEmail(),
     body('password').isString().notEmpty(),

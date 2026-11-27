@@ -3,13 +3,17 @@ import bcrypt from 'bcryptjs'
 import crypto from 'crypto'
 import { prisma } from '../../config/prisma'
 import { sendSuccess, sendError } from '../../utils/response'
-import { AuthRequest } from '../../middleware/auth'
-import { sendVerificationEmail, sendResetEmail } from '../../utils/mailer'
+import { AuthRequest, clearUserCache } from '../../middleware/auth'
+import { sendVerificationEmail, sendResetEmail, sendExistingAccountEmail } from '../../utils/mailer'
+import { passwordProblem } from '../../utils/passwordPolicy'
 import { CURRENT_ACCEPTANCE } from '../../legal/policy'
 
 const DOMAIN = (process.env.ALLOWED_EMAIL_DOMAIN || 'university.ac').toLowerCase()
 const hashToken = (t: string) => crypto.createHash('sha256').update(t).digest('hex')
 const frontend = () => process.env.FRONTEND_URL || 'http://localhost:3000'
+
+// Compared against when the email is unknown, so a wrong password takes the same time either way
+const DUMMY_HASH = bcrypt.hashSync('not-a-real-password', 12)
 
 const issueVerification = async (user: { id: string; email: string; name: string }) => {
   const token = crypto.randomBytes(32).toString('hex')
@@ -40,10 +44,17 @@ export const register = async (req: Request, res: Response) => {
       return sendError(res, "Your registration number doesn't match your university email", 400)
     }
 
+    const problem = passwordProblem(String(password), cleanEmail)
+    if (problem) return sendError(res, problem, 400)
+
     const existing = await prisma.user.findFirst({
       where: { OR: [{ email: cleanEmail }, { studentId: regNo }] }
     })
-    if (existing) return sendError(res, 'An account with this email or registration number already exists', 409)
+    if (existing) {
+      // Answer exactly as for a new account, so nobody can use this form to find out who has one
+      sendExistingAccountEmail(existing.email, existing.name, `${frontend()}/auth/login`).catch(() => {})
+      return sendSuccess(res, { email: cleanEmail }, 'Account created. Check your university inbox to confirm your email.', 201)
+    }
 
     const user = await prisma.user.create({
       data: {
@@ -72,8 +83,8 @@ export const login = async (req: Request, res: Response) => {
     const { email, password } = req.body
     const user = await prisma.user.findUnique({ where: { email: String(email).trim().toLowerCase() } })
 
-    const valid = user?.passwordHash && (await bcrypt.compare(password, user.passwordHash))
-    if (!user || !valid) return sendError(res, 'Invalid email or password', 401)
+    const matches = await bcrypt.compare(String(password), user?.passwordHash ?? DUMMY_HASH)
+    if (!user || !user.passwordHash || !matches) return sendError(res, 'Invalid email or password', 401)
     if (!user.isActive) return sendError(res, 'This account has been suspended', 403)
 
     return sendSuccess(res, {
@@ -107,6 +118,8 @@ export const forgotPassword = async (req: Request, res: Response) => {
 export const resetPassword = async (req: Request, res: Response) => {
   try {
     const { token, password } = req.body
+    const early = passwordProblem(String(password))
+    if (early) return sendError(res, early, 400)
     const user = await prisma.user.findFirst({
       where: { resetToken: hashToken(String(token)), resetTokenExpiry: { gt: new Date() } }
     })
@@ -118,9 +131,12 @@ export const resetPassword = async (req: Request, res: Response) => {
         passwordHash: await bcrypt.hash(password, 12),
         resetToken: null,
         resetTokenExpiry: null,
-        emailVerified: true
+        emailVerified: true,
+        // Every sign-in that began before this moment stops working
+        passwordChangedAt: new Date()
       }
     })
+    clearUserCache()
     return sendSuccess(res, null, 'Password updated. You can now sign in.')
   } catch (error) {
     return sendError(res, 'Failed to reset password', 500, error)

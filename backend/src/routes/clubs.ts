@@ -8,7 +8,7 @@ import { leaveGroup, getGroupInsights } from '../controllers/auth/userController
 import {
   listDiscussions, createPost, togglePin, deletePost
 } from '../controllers/clubs/discussionsController'
-import { authenticate, requireRole, requireGroupManager, ROLES } from '../middleware/auth'
+import { authenticate, optionalAuthenticate, requireRole, requireGroupManager, ROLES } from '../middleware/auth'
 import { verifiedOnly } from '../middleware/verified'
 import { validate } from '../middleware/validate'
 
@@ -28,7 +28,7 @@ router.put('/mine',
   validate,
   updateMyClub
 )
-router.get('/:id', getClubById)
+router.get('/:id', optionalAuthenticate, getClubById)
 router.get('/:id/membership', authenticate, getMembershipStatus)
 router.get('/:id/insights', authenticate, requireGroupManager('club'), getGroupInsights)
 router.post('/',

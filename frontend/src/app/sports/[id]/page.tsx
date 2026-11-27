@@ -6,7 +6,7 @@ import { Calendar, MapPin, Users, Clock } from "lucide-react"
 import * as T from "@/lib/sportsToolsApi"
 import { imageSrc } from "@/lib/groupImagesApi"
 
-type TeamWithImages = T.TeamDetail & { logoUrl?: string | null; bannerUrl?: string | null }
+type TeamWithImages = T.TeamDetail & { logoUrl?: string | null; bannerUrl?: string | null; namesHidden?: boolean; _count?: { squadMembers?: number } }
 
 const card: React.CSSProperties = { background: "white", borderRadius: 16, border: "1px solid #E4E2DC", padding: 24 }
 const h2: React.CSSProperties = { fontFamily: "'Playfair Display', serif", fontSize: 17, color: "#0B1D3A", marginBottom: 14 }
@@ -64,7 +64,7 @@ export default function TeamPage({ params }: { params: Promise<{ id: string }> }
             <span><strong style={{ fontSize: 20 }}>{w}</strong> won</span>
             <span><strong style={{ fontSize: 20 }}>{d}</strong> drawn</span>
             <span><strong style={{ fontSize: 20 }}>{l}</strong> lost</span>
-            <span style={{ display: "flex", alignItems: "center", gap: 6 }}><Users size={14} /><strong style={{ fontSize: 20 }}>{team.squadMembers.length}</strong> players</span>
+            <span style={{ display: "flex", alignItems: "center", gap: 6 }}><Users size={14} /><strong style={{ fontSize: 20 }}>{team._count?.squadMembers ?? team.squadMembers.length}</strong> players</span>
           </div>
         </div>
 
@@ -99,7 +99,7 @@ export default function TeamPage({ params }: { params: Promise<{ id: string }> }
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
           <div style={card}>
             <h2 style={h2}>Squad</h2>
-            {team.squadMembers.length === 0 ? <p style={{ fontSize: 13, color: "#9CA3AF" }}>The squad has not been announced.</p> : team.squadMembers.map(m => (
+            {team.namesHidden ? <p style={{ fontSize: 13, color: "#9CA3AF" }}>Sign in to see who plays for this team.</p> : team.squadMembers.length === 0 ? <p style={{ fontSize: 13, color: "#9CA3AF" }}>The squad has not been announced.</p> : team.squadMembers.map(m => (
               <div key={m.id} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderTop: "1px solid #F3F4F6", fontSize: 14 }}>
                 <span style={{ color: "#0B1D3A" }}>{m.jerseyNumber !== null ? `#${m.jerseyNumber} ` : ""}{m.user.name}</span>
                 <span style={{ color: "#9CA3AF", fontSize: 12 }}>{m.isInjured ? "Injured" : m.position ?? ""}</span>

@@ -3,7 +3,7 @@ import { prisma } from '../../config/prisma'
 import { sendSuccess, sendError } from '../../utils/response'
 import { AuthRequest } from '../../middleware/auth'
 import { saveImage, deleteImage } from '../../utils/storage'
-import { processImage } from '../../utils/imageUpload'
+import { processImage, looksLikeImage } from '../../utils/imageUpload'
 
 type Target = 'club' | 'team'
 type Kind = 'logo' | 'banner'
@@ -29,6 +29,8 @@ export const setImage = (target: Target) => async (req: AuthRequest, res: Respon
     const kind = req.params.kind as Kind
 
     if (!req.file) return sendError(res, 'Choose a JPEG, PNG or WebP image up to 5 MB', 400)
+
+    if (!looksLikeImage(req.file.buffer)) return sendError(res, "That file isn't a valid image", 400)
 
     const group = await load(target, id)
     if (!group) return sendError(res, 'Group not found', 404)

@@ -25,5 +25,6 @@ declare module "next-auth/jwt" {
     role: string
     studentId: string
     faculty: string
+    sid?: number
   }
 }

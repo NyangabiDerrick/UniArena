@@ -1,5 +1,6 @@
 "use client"
 
+import { clearSessionCache } from "@/lib/session"
 import { signIn } from "next-auth/react"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
@@ -21,6 +22,7 @@ export default function LoginPage() {
     setLoading(true)
     setError("")
     const result = await signIn("credentials", { email: email.trim(), password, redirect: false })
+    clearSessionCache()
     if (result?.error) {
       setError(result.error === "CredentialsSignin" ? "Invalid email or password" : result.error)
       setLoading(false)

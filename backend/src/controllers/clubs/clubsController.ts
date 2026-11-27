@@ -3,6 +3,7 @@ import { Prisma, ClubType } from '@prisma/client'
 import { prisma } from '../../config/prisma'
 import { sendSuccess, sendError } from '../../utils/response'
 import { AuthRequest } from '../../middleware/auth'
+import { pageOf } from '../../utils/paging'
 
 export const CLUB_CATEGORIES = ['Cultural', 'Academic', 'Arts', 'Religious', 'Sports', 'Political', 'Technology', 'Social']
 
@@ -25,7 +26,8 @@ export const getClubs = async (req: Request, res: Response) => {
         } : {})
       },
       include: { _count: { select: { memberships: { where: { status: 'ACTIVE' } } } } },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
+      ...pageOf(req)
     })
 
     return sendSuccess(res, clubs)
@@ -34,8 +36,8 @@ export const getClubs = async (req: Request, res: Response) => {
   }
 }
 
-// GET /api/clubs/:id (public): no emails are exposed
-export const getClubById = async (req: Request, res: Response) => {
+// GET /api/clubs/:id (public): no emails are exposed, and names only for signed-in people
+export const getClubById = async (req: AuthRequest, res: Response) => {
   try {
     const club = await prisma.club.findUnique({
       where: { id: req.params.id },
@@ -56,6 +58,9 @@ export const getClubById = async (req: Request, res: Response) => {
     })
 
     if (!club || club.status !== 'ACTIVE') return sendError(res, 'Club not found', 404)
+
+    // People's names are shown only to signed-in people. Visitors see the counts.
+    if (!req.user) return sendSuccess(res, { ...club, memberships: [], committees: [], namesHidden: true })
     return sendSuccess(res, club)
   } catch (error) {
     return sendError(res, 'Failed to fetch club', 500, error)

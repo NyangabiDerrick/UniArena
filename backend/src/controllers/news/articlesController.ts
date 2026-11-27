@@ -3,6 +3,7 @@ import { ArticleCategory } from '@prisma/client'
 import { prisma } from '../../config/prisma'
 import { sendSuccess, sendError } from '../../utils/response'
 import { AuthRequest } from '../../middleware/auth'
+import { pageOf } from '../../utils/paging'
 
 // What each kind of creator may choose. The form shows these, and the server enforces them.
 const allowedArticleCategories = (role: string, hasTeam: boolean, clubType: 'CLUB' | 'SOCIETY' | null): ArticleCategory[] => {
@@ -40,7 +41,8 @@ export const getArticles = async (req: Request, res: Response) => {
         club: { select: { name: true, type: true } },
         team: { select: { name: true } }
       },
-      orderBy: [{ isPinned: 'desc' }, { createdAt: 'desc' }]
+      orderBy: [{ isPinned: 'desc' }, { createdAt: 'desc' }],
+      ...pageOf(req, 100, 200)
     })
 
     return sendSuccess(res, articles)
