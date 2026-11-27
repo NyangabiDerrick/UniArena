@@ -49,18 +49,18 @@ export default function TeamPage({ params }: { params: Promise<{ id: string }> }
           ...card, border: "none", color: "white", position: "relative", overflow: "hidden",
           background: banner ? `linear-gradient(rgba(11,29,58,0.72), rgba(11,29,58,0.88)), url(${banner}) center / cover` : "#0B1D3A"
         }}>
-          <div style={{ display: "flex", gap: 18, alignItems: "center", marginBottom: 14 }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 18, alignItems: "center", marginBottom: 14 }}>
             {logo && (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={logo} alt={`${team.name} logo`} style={{ width: 72, height: 72, borderRadius: 14, objectFit: "cover", border: "2px solid rgba(255,255,255,0.3)", flexShrink: 0 }} />
             )}
-            <div>
+            <div style={{ flex: "1 1 200px", minWidth: 0 }}>
               <p style={{ fontSize: 11, letterSpacing: "0.12em", color: "#C9A84C", marginBottom: 6 }}>{team.sport.toUpperCase()}{team.season ? ` · ${team.season}` : ""}</p>
               <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: 30, fontWeight: 700 }}>{team.name}</h1>
             </div>
           </div>
           {team.description && <p style={{ fontSize: 14, color: "rgba(255,255,255,0.75)", lineHeight: 1.6, marginBottom: 16 }}>{team.description}</p>}
-          <div style={{ display: "flex", gap: 28, fontSize: 13 }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "10px 28px", fontSize: 13 }}>
             <span><strong style={{ fontSize: 20 }}>{w}</strong> won</span>
             <span><strong style={{ fontSize: 20 }}>{d}</strong> drawn</span>
             <span><strong style={{ fontSize: 20 }}>{l}</strong> lost</span>

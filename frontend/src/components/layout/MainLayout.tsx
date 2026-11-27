@@ -30,7 +30,8 @@ const css = `
   [style*="grid-template-columns"] { grid-template-columns: minmax(0, 1fr) !important; }
   [style*="position: sticky"] { position: static !important; }
   table { display: block; overflow-x: auto; max-width: 100%; }
-  h1 { word-break: break-word; }
+  /* Breaks only a word too long for the line. (word-break would also squeeze headings to a few letters wide.) */
+  h1 { overflow-wrap: break-word; }
   img, video { max-width: 100%; height: auto; }
   select, input, textarea { max-width: 100%; }
 }
