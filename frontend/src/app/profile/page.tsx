@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { useSession } from "next-auth/react"
 import MainLayout from "@/components/layout/MainLayout"
+import YourDataCard from "@/components/profile/YourDataCard"
 import { api, type LeaveReason } from "@/lib/api"
 import { errorMessage } from "@/lib/types"
 import type { Profile } from "@/lib/types"
@@ -245,6 +246,8 @@ export default function ProfilePage() {
             </div>
           )}
         </div>
+
+        <YourDataCard canDelete={user?.role === "STUDENT"} />
       </div>
     </MainLayout>
   )

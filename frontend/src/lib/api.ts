@@ -1,4 +1,4 @@
-import { getSession } from "next-auth/react"
+import { getSession, clearSessionCache } from "./session"
 import type { Analytics, Article, AuditLog, Club, Dashboard, Event, Fixture, Membership, MemberWithUser, Profile, Team, Ticket, User } from "./types"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
@@ -69,6 +69,7 @@ async function request<T>(
   })
 
   if (!res.ok) {
+    if (res.status === 401) clearSessionCache()
     const error = await res.json().catch(() => ({ message: "Request failed" }))
     throw new Error(error.message || "Request failed")
   }
@@ -76,7 +77,7 @@ async function request<T>(
   return res.json()
 }
 
-type Params = Record<string, string | boolean | undefined>
+type Params = Record<string, string | number | boolean | undefined>
 
 const cleanParams = (params?: Params): Record<string, string> =>
   Object.fromEntries(
@@ -148,7 +149,7 @@ export const api = {
 
   // Admin
   getAdminAnalytics: () => request<Analytics>("/api/admin/analytics"),
-  getAdminUsers: (params?: { role?: string; search?: string }) => {
+  getAdminUsers: (params?: { role?: string; search?: string; limit?: number }) => {
     const query = new URLSearchParams(cleanParams(params)).toString()
     return request<User[]>(`/api/admin/users${query ? `?${query}` : ""}`)
   },

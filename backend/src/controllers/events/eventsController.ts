@@ -4,6 +4,7 @@ import { EventCategory } from '@prisma/client'
 import { prisma } from '../../config/prisma'
 import { sendSuccess, sendError } from '../../utils/response'
 import { AuthRequest } from '../../middleware/auth'
+import { pageOf } from '../../utils/paging'
 
 // What each kind of creator may choose. The form shows these, and the server enforces them.
 // Leaders can only post as their own kind of group; admins can post any of the four.
@@ -22,9 +23,13 @@ export const getEvents = async (req: Request, res: Response) => {
   try {
     const { search, free } = req.query
 
+    // Upcoming events and ones that finished in the last 30 days. Older events stay out of the list unless asked for (?all=true).
+    const recent = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+
     const events = await prisma.event.findMany({
       where: {
         status: { in: ['APPROVED', 'CANCELLED'] },
+        ...(req.query.all === 'true' ? {} : { endsAt: { gte: recent } }),
         ...(free === 'true' ? { isFree: true } : {}),
         ...(search ? {
           OR: [
@@ -39,7 +44,8 @@ export const getEvents = async (req: Request, res: Response) => {
         creator: { select: { name: true } },
         _count: { select: { tickets: true } }
       },
-      orderBy: { startsAt: 'asc' }
+      orderBy: { startsAt: 'asc' },
+      ...pageOf(req, 100, 200)
     })
 
     return sendSuccess(res, events)

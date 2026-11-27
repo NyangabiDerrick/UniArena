@@ -7,10 +7,13 @@ import {
 import { policyStatus, acceptPolicy } from '../controllers/auth/policyController'
 import { validate } from '../middleware/validate'
 import { authenticate, AuthRequest } from '../middleware/auth'
-import { authLimiter, loginLimiter } from '../middleware/rateLimiter'
+import {
+  registerLimiter, verifyEmailLimiter, resetPasswordLimiter, forgotPasswordLimiters, loginLimiters
+} from '../middleware/rateLimiter'
+import { MIN_PASSWORD_LENGTH } from '../utils/passwordPolicy'
 
 const router = Router()
-const password = body('password').isLength({ min: 8, max: 100 }).withMessage('Password must be at least 8 characters')
+const password = body('password').isLength({ min: MIN_PASSWORD_LENGTH, max: 100 }).withMessage(`Password must be at least ${MIN_PASSWORD_LENGTH} characters`)
 
 const resendLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
@@ -19,7 +22,7 @@ const resendLimiter = rateLimit({
   message: { success: false, message: 'You asked for several emails already. Please check your inbox and spam folder, or try again later.' }
 })
 
-router.post('/register', authLimiter,
+router.post('/register', registerLimiter,
   [
     body('name').trim().notEmpty(),
     body('email').isEmail(),
@@ -29,17 +32,17 @@ router.post('/register', authLimiter,
   ],
   validate, register)
 
-router.post('/login', loginLimiter,
+router.post('/login', ...loginLimiters,
   [body('email').isEmail(), body('password').notEmpty()],
   validate, login)
 
-router.post('/forgot-password', authLimiter, [body('email').isEmail()], validate, forgotPassword)
+router.post('/forgot-password', ...forgotPasswordLimiters, [body('email').isEmail()], validate, forgotPassword)
 
-router.post('/reset-password', authLimiter,
+router.post('/reset-password', resetPasswordLimiter,
   [body('token').notEmpty(), password],
   validate, resetPassword)
 
-router.post('/verify-email', authLimiter, [body('token').isString().notEmpty()], validate, verifyEmail)
+router.post('/verify-email', verifyEmailLimiter, [body('token').isString().notEmpty()], validate, verifyEmail)
 
 router.post('/resend-verification', authenticate, resendLimiter, resendVerification)
 

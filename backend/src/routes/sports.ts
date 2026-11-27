@@ -6,7 +6,7 @@ import {
 import {
   getMyTeam, getManageView, addSquadMember, updateSquadMember, removeSquadMember, addTraining, deleteTraining
 } from '../controllers/sports/sportsManageController'
-import { authenticate, requireRole, requireGroupManager, ROLES } from '../middleware/auth'
+import { authenticate, optionalAuthenticate, requireRole, requireGroupManager, ROLES } from '../middleware/auth'
 import { validate } from '../middleware/validate'
 
 const router = Router()
@@ -17,7 +17,7 @@ const score = (field: string) => body(field).optional({ nullable: true }).isInt(
 
 router.get('/', getTeams)
 router.get('/mine', authenticate, requireRole(ROLES.CLUB_LEADER), getMyTeam)
-router.get('/:id', getTeamById)
+router.get('/:id', optionalAuthenticate, getTeamById)
 router.get('/:id/manage', ...own, getManageView)
 
 router.post('/:id/fixtures', ...own,

@@ -1,5 +1,6 @@
 "use client"
 
+import { clearSessionCache } from "@/lib/session"
 import { useState, useEffect } from "react"
 import { signIn } from "next-auth/react"
 import { useRouter } from "next/navigation"
@@ -77,6 +78,7 @@ export default function RegisterPage() {
     }
 
     const result = await signIn("credentials", { email: draft.email.trim(), password, redirect: false })
+    clearSessionCache()
     if (result?.error) {
       setCreated(true)
       setLoading(false)
@@ -116,8 +118,8 @@ export default function RegisterPage() {
           <input value={draft.faculty} onChange={e => set("faculty")(e.target.value)} style={inputStyle} />
         </div>
         <div>
-          <label style={labelStyle}>Password (at least 8 characters)</label>
-          <PasswordField value={password} onChange={setPassword} required minLength={8} autoComplete="new-password" />
+          <label style={labelStyle}>Password (at least 10 characters)</label>
+          <PasswordField value={password} onChange={setPassword} required minLength={10} autoComplete="new-password" />
         </div>
         <div>
           <label style={labelStyle}>Confirm password</label>

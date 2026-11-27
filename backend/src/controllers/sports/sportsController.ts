@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client'
 import { prisma } from '../../config/prisma'
 import { sendSuccess, sendError } from '../../utils/response'
 import { AuthRequest } from '../../middleware/auth'
+import { pageOf } from '../../utils/paging'
 
 const stamp = (d: Date) =>
   d.toLocaleString('en-GB', { timeZone: 'Africa/Nairobi', weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
@@ -38,7 +39,8 @@ export const getTeams = async (req: Request, res: Response) => {
         _count: { select: { squadMembers: true } },
         fixtures: { where: { status: 'UPCOMING' }, orderBy: { scheduledAt: 'asc' }, take: 3 }
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
+      ...pageOf(req)
     })
 
     const completed = await prisma.fixture.findMany({
@@ -67,7 +69,7 @@ export const getTeams = async (req: Request, res: Response) => {
 }
 
 // GET /api/sports/:id (public: no registration numbers)
-export const getTeamById = async (req: Request, res: Response) => {
+export const getTeamById = async (req: AuthRequest, res: Response) => {
   try {
     const team = await prisma.sportsTeam.findUnique({
       where: { id: req.params.id },
@@ -79,6 +81,9 @@ export const getTeamById = async (req: Request, res: Response) => {
       }
     })
     if (!team || team.status !== 'ACTIVE') return sendError(res, 'Team not found', 404)
+
+    // Player names are shown only to signed-in people. Visitors see the number of players.
+    if (!req.user) return sendSuccess(res, { ...team, squadMembers: [], namesHidden: true })
     return sendSuccess(res, team)
   } catch (error) {
     return sendError(res, 'Failed to fetch team', 500, error)

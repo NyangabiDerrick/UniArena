@@ -1,5 +1,6 @@
 "use client"
 
+import { clearSessionCache } from "@/lib/session"
 import { useState, useEffect, useCallback } from "react"
 import { signOut, useSession } from "next-auth/react"
 import { usePathname, useRouter } from "next/navigation"
@@ -162,7 +163,7 @@ export default function Navbar({ onMenu }: { onMenu?: () => void }) {
         <div className="app-hide-mobile" style={{ width: 1, height: 18, backgroundColor: "#E4E2DC", margin: "0 4px" }} />
 
         <button
-          onClick={() => signOut({ callbackUrl: "/auth/login" })}
+          onClick={() => { clearSessionCache(); signOut({ callbackUrl: "/auth/login" }) }}
           aria-label="Sign out"
           style={{
             display: "flex", alignItems: "center", gap: 6, padding: "6px 10px", borderRadius: 8,

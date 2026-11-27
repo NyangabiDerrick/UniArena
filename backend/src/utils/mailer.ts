@@ -3,15 +3,7 @@
 const esc = (s: string) =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 
-async function sendMail(to: string, subject: string, html: string, text: string): Promise<boolean> {
-  const key = process.env.BREVO_API_KEY
-
-  // No key configured: print the email so development still works
-  if (!key) {
-    console.log(`\n[DEV mail] To: ${to}\nSubject: ${subject}\n${text}\n`)
-    return true
-  }
-
+async function sendOnce(to: string, subject: string, html: string, text: string, key: string): Promise<'ok' | 'retry' | 'stop'> {
   try {
     const res = await fetch('https://api.brevo.com/v3/smtp/email', {
       method: 'POST',
@@ -26,13 +18,33 @@ async function sendMail(to: string, subject: string, html: string, text: string)
     })
     if (!res.ok) {
       console.error('Email failed:', res.status, await res.text())
-      return false
+      return res.status >= 500 || res.status === 429 ? 'retry' : 'stop'
     }
-    return true
+    return 'ok'
   } catch (error) {
     console.error('Email failed:', error)
-    return false
+    return 'retry'
   }
+}
+
+// Tries up to three times with a growing pause, because email providers have short outages.
+// A rejected request (4xx) is not retried: sending it again would not change the answer.
+async function sendMail(to: string, subject: string, html: string, text: string): Promise<boolean> {
+  const key = process.env.BREVO_API_KEY
+
+  // No key configured: print the email so development still works
+  if (!key) {
+    console.log(`\n[DEV mail] To: ${to}\nSubject: ${subject}\n${text}\n`)
+    return true
+  }
+
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    const result = await sendOnce(to, subject, html, text, key)
+    if (result === 'ok') return true
+    if (result === 'stop') return false
+    if (attempt < 3) await new Promise(r => setTimeout(r, attempt * 800))
+  }
+  return false
 }
 
 const wrap = (title: string, body: string, link: string, button: string) => `
@@ -57,4 +69,12 @@ export const sendResetEmail = (to: string, name: string, link: string) =>
     'Reset your UniArena password',
     wrap('Reset your password', `Hi ${esc(name)}, use the button below to choose a new password. The link works for one hour. If you didn't ask for this, ignore this email and your password stays the same.`, link, 'Choose a new password'),
     `Hi ${name}, reset your UniArena password (valid for 1 hour): ${link}. If you didn't ask for this, ignore this email.`
+  )
+
+export const sendExistingAccountEmail = (to: string, name: string, link: string) =>
+  sendMail(
+    to,
+    'You already have a UniArena account',
+    wrap('You already have an account', `Hi ${esc(name)}, someone tried to create a UniArena account with this email address or registration number, but you already have one. If it was you, just sign in. If you forgot your password, you can reset it from the sign-in page. If it was not you, you can ignore this email.`, link, 'Go to sign in'),
+    `Hi ${name}, someone tried to create a UniArena account with your details, but you already have one. Sign in here: ${link}. If you forgot your password, use "Forgot password" on that page.`
   )
