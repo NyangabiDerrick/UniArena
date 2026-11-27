@@ -105,15 +105,16 @@ export default function ClubProfilePage({ params }: { params: Promise<{ id: stri
         }} />
 
         <div style={{ background: "white", borderRadius: "0 0 16px 16px", padding: "0 28px 24px", border: "1px solid #E4E2DC", borderTop: "none", marginBottom: 20 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 16 }}>
-            <div style={{ display: "flex", alignItems: "flex-end", gap: 18 }}>
+          {/* On narrow screens the Join button moves below, and the name moves under the logo, so it keeps its width */}
+          <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "flex-end", gap: 16 }}>
+            <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-end", gap: 18, flex: "1 1 280px", minWidth: 0 }}>
               <div style={{ width: 72, height: 72, borderRadius: 16, background: "#EFF6FF", color: "#1D4ED8", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: 28, border: "4px solid white", marginTop: -36, flexShrink: 0, boxShadow: "0 4px 12px rgba(11,29,58,0.12)" }}>
                 {logo ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={logo} alt={`${club.name} logo`} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                 ) : club.name.charAt(0)}
               </div>
-              <div style={{ paddingBottom: 4 }}>
+              <div style={{ paddingBottom: 4, flex: "1 1 200px", minWidth: 0 }}>
                 <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: 24, fontWeight: 700, color: "#0B1D3A", marginBottom: 6 }}>{club.name}</h1>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 12, fontSize: 13, color: "#9CA3AF", alignItems: "center" }}>
                   <span style={{ fontSize: 11, padding: "3px 10px", borderRadius: 99, background: club.type === "SOCIETY" ? "#F5F3FF" : "#EFF6FF", color: club.type === "SOCIETY" ? "#6D28D9" : "#1D4ED8", fontWeight: 500 }}>
@@ -131,7 +132,7 @@ export default function ClubProfilePage({ params }: { params: Promise<{ id: stri
           </div>
         </div>
 
-        <div style={{ display: "flex", gap: 4, background: "#F3F4F6", padding: 4, borderRadius: 10, width: "fit-content", marginBottom: 20 }}>
+        <div style={{ display: "flex", gap: 4, background: "#F3F4F6", padding: 4, borderRadius: 10, width: "fit-content", maxWidth: "100%", overflowX: "auto", marginBottom: 20 }}>
           {tabs.map(tab => (
             <button key={tab} onClick={() => setActiveTab(tab)} style={{
               padding: "8px 18px", borderRadius: 8, fontSize: 13, fontWeight: 500, border: "none", cursor: "pointer",
